@@ -41,3 +41,11 @@
 **Decision:** MXNB is the only currency users see. USDC is not an option.
 **Reasoning:** Mexican users think in pesos, not dollars. MXNB removes mental conversion friction. Sponsor alignment.
 **Consequences:** Limited to chains where MXNB is deployed (Arbitrum, Ethereum, Avalanche). Mitigation: Arbitrum is our chosen L2 anyway.
+
+## ADR-6: Mock MXNB on testnet, real MXNB on mainnet
+**Date:** 2026-05-07
+**Status:** Accepted
+**Context:** The real MXNB token (`0xF197FFC28c23E0309B5559e7a166f2c6164C80aA`) is deployed on Arbitrum One. On Arbitrum Sepolia, no official MXNB exists.
+**Decision:** Deploy a `MockMXNB` (`mMXNB`) on Arbitrum Sepolia with the same 6-decimal precision as the real token. The Vaquita contracts depend only on the IERC20 interface, so swapping between mock and real is one configuration change.
+**Reasoning:** Avoids blocking development on testnet. The 6-decimal match means amount calculations behave identically. Adding a public faucet on the mock simplifies demos with judges.
+**Consequences:** Documentation must clearly state that `mMXNB` is for testnet only. Mainnet deployment must be hardcoded to use the real MXNB address.

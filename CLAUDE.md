@@ -167,7 +167,27 @@ Before building ANY new feature, ask: "Would 80% of other hackathon teams build 
 - The winning concept (vaquita on blockchain with AI risk scoring) IS the differentiator
 - Stay weird, stay LATAM-specific, stay opinionated
 
-## 12. Operating Reminders for Claude Code
+## 12. Onchain Reference Data
+
+### MXNB Token
+- **Mainnet (Arbitrum One):** `0xF197FFC28c23E0309B5559e7a166f2c6164C80aA`
+- **Testnet (Arbitrum Sepolia):** Use deployed `MockMXNB` (`mMXNB`) — real MXNB is not officially on Sepolia.
+- **Decimals:** 6 (NOT 18). This is critical — every amount calculation must respect this.
+- **Symbol on production:** `MXNB`. On testnet via mock: `mMXNB`.
+
+### Chain IDs
+- Arbitrum One (production demo): `42161`
+- Arbitrum Sepolia (development): `421614`
+
+### Public RPCs (free, suitable for dev — switch to Alchemy/QuickNode if rate-limited)
+- Arbitrum One: `https://arb1.arbitrum.io/rpc`
+- Arbitrum Sepolia: `https://sepolia-rollup.arbitrum.io/rpc`
+
+### Block explorers
+- Arbitrum One: https://arbiscan.io
+- Arbitrum Sepolia: https://sepolia.arbiscan.io
+
+## 13. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)
