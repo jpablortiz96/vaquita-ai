@@ -145,7 +145,7 @@ The demo must engage MORE THAN ONE SENSE:
 ## 10. Common Commands
 
 ```powershell
-# Smart contracts
+# Smart contracts — IMPORTANT: always run forge commands from contracts/ directory
 cd contracts
 forge build
 forge test -vvv
@@ -159,6 +159,8 @@ npm run dev
 cd agent
 npm run dev
 ```
+
+> **Note:** After cloning, run `git submodule update --init --recursive` from root to restore `contracts/lib/`.
 
 ## 11. "Nadie Más Va a Hacer Esto" Filter
 

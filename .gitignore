@@ -10,11 +10,10 @@ node_modules/
 *.venv
 venv/
 
-# Foundry
+# Foundry (lib/ is tracked via git submodules — only ignore build artifacts)
 contracts/out/
 contracts/cache/
 contracts/broadcast/
-contracts/lib/
 
 # Next.js
 web/.next/
