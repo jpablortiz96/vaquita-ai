@@ -232,7 +232,33 @@ Before building ANY new feature, ask: "Would 80% of other hackathon teams build 
 - All members are trusted not to collude. V2 adds optional ZK-attested KYC.
 - The contract does not need an admin during operation — `executeCycle` is permissionless.
 
-## 14. Operating Reminders for Claude Code
+## 14. Factory Pattern (EIP-1167 Clones)
+
+The factory deploys vaquitas as minimal proxies pointing to a single `Vaquita` implementation:
+
+```
+   ┌──────────────────┐
+   │ Vaquita          │
+   │ (implementation) │  ← deployed once, holds all logic
+   └─────────▲────────┘
+             │ delegatecall
+             │
+   ┌─────────┴────────┐  ┌─────────────────┐  ┌─────────────────┐
+   │ Vaquita Clone #1 │  │Vaquita Clone #2│ ...│Vaquita Clone #N│
+   │ (per-group state)│  │                │   │                │
+   └──────────────────┘  └─────────────────┘  └─────────────────┘
+```
+
+Why:
+- Each clone costs ~50K gas to deploy vs ~1.5M for a full deploy. 30× cheaper.
+- All clones share storage layout but have isolated state per address.
+- `initialize` replaces the constructor; the implementation is locked in its own constructor so it can never be initialized directly.
+
+Implications:
+- The Vaquita contract has no immutables — they were converted to regular storage variables.
+- Anyone calling `initialize` on a clone before the factory does could hijack it; we mitigate this by only ever creating clones via the factory's `createVaquita`, which initializes atomically in the same transaction.
+
+## 15. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

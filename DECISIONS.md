@@ -65,3 +65,11 @@
 **Decision:** V1 uses a flat per-member collateral set by the creator at deploy. If the vaquita defaults mid-cycle (someone has insufficient collateral), the in-flight cycle's pool is locked in the contract. Members may still claim their remaining collateral.
 **Reasoning:** Flat collateral keeps the WhatsApp onboarding to a single number. Locked-pool semantics avoid the complex equity logic of partial pool refunds. V2 will add position-scaled collateral and pool redistribution.
 **Consequences:** Recommended creator-side guidance: set `collateralAmount = (totalMembers - 1) * contributionAmount` to fully secure. The frontend will hint at this default.
+
+## ADR-9: Use OpenZeppelin Clones (EIP-1167) for vaquita deployment
+**Date:** 2026-05-07
+**Status:** Accepted
+**Context:** Each new vaquita is its own contract instance. A naive deploy costs ~1.5M gas, which on Arbitrum One is ~$0.04 — fine, but it scales linearly with the number of vaquitas and is wasteful when every vaquita shares the same logic.
+**Decision:** The Vaquita contract is now Initializable (no parameterized constructor). A single implementation is deployed once, and the VaquitaFactory uses OZ Clones to create EIP-1167 minimal proxies that delegate to it.
+**Reasoning:** ~30× cheaper deployment. Standard pattern recognized by every DeFi reviewer. Implementation contract is locked in its own constructor to avoid the "uninitialized implementation" attack.
+**Consequences:** Vaquita storage layout is now critical — adding state variables in upgrades would break clones. We accept this for V1; if upgrade needs arise, we'll move to UUPS proxies in V2.

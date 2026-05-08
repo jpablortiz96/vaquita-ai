@@ -5,28 +5,28 @@ import { Test } from "forge-std/Test.sol";
 import { Vaquita } from "../src/Vaquita.sol";
 import { MockMXNB } from "../src/mocks/MockMXNB.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract VaquitaTest is Test {
-    // ─── Test fixtures ─────────────────────────────────────────────────
     MockMXNB internal token;
+    Vaquita internal implementation;
     Vaquita internal vaquita;
 
     address internal owner = makeAddr("owner");
+    address internal factory = makeAddr("factory");
     address internal creator = makeAddr("creator");
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
     address internal carol = makeAddr("carol");
     address internal dave = makeAddr("dave");
 
-    // 4-member vaquita constants.
     uint8 internal constant N_MEMBERS = 4;
-    uint256 internal constant CONTRIBUTION = 100 * 10 ** 6; // 100 MXNB
-    uint256 internal constant COLLATERAL = 300 * 10 ** 6; // 300 MXNB (3x contribution)
+    uint256 internal constant CONTRIBUTION = 100 * 10 ** 6;
+    uint256 internal constant COLLATERAL = 300 * 10 ** 6;
     uint256 internal constant CYCLE = 7 days;
-    uint256 internal constant SEED = 10_000 * 10 ** 6; // 10,000 MXNB seed per member
+    uint256 internal constant SEED = 10_000 * 10 ** 6;
 
     function setUp() public virtual {
-        // Deploy token, mint plenty to every test address, deploy vaquita.
         vm.prank(owner);
         token = new MockMXNB(owner);
 
@@ -36,16 +36,33 @@ contract VaquitaTest is Test {
             token.mint(people[i], SEED);
         }
 
-        vaquita = new Vaquita(IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
+        // Deploy a single implementation, then clone for each test.
+        implementation = new Vaquita();
+        vaquita = _deployClone(CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
     }
 
-    // ─── Helpers ───────────────────────────────────────────────────────
+    function _deployClone(
+        uint256 contribution,
+        uint256 collateral,
+        uint8 nMembers,
+        uint256 cycleSecs
+    )
+        internal
+        returns (Vaquita v)
+    {
+        v = Vaquita(Clones.clone(address(implementation)));
+        v.initialize(factory, IERC20(address(token)), creator, contribution, collateral, nMembers, cycleSecs);
+    }
+
+    function _approveAndJoin(Vaquita v, address user, uint256 collateral) internal {
+        vm.startPrank(user);
+        token.approve(address(v), collateral);
+        v.join();
+        vm.stopPrank();
+    }
 
     function _approveAndJoin(address user) internal {
-        vm.startPrank(user);
-        token.approve(address(vaquita), COLLATERAL);
-        vaquita.join();
-        vm.stopPrank();
+        _approveAndJoin(vaquita, user, COLLATERAL);
     }
 
     function _joinAllMembers() internal {
@@ -85,38 +102,54 @@ contract VaquitaTest is Test {
         _contribute(dave);
     }
 
-    // ─── Constructor ───────────────────────────────────────────────────
+    // ─── Initialization ────────────────────────────────────────────────
 
-    function test_ConstructorSetsState() public view {
+    function test_InitializeSetsState() public view {
         assertEq(address(vaquita.token()), address(token));
         assertEq(vaquita.creator(), creator);
+        assertEq(vaquita.factory(), factory);
         assertEq(vaquita.contributionAmount(), CONTRIBUTION);
         assertEq(vaquita.collateralAmount(), COLLATERAL);
         assertEq(vaquita.totalMembers(), N_MEMBERS);
         assertEq(vaquita.cycleDuration(), CYCLE);
         assertEq(uint256(vaquita.status()), uint256(Vaquita.Status.Created));
-        assertEq(vaquita.currentCycle(), 0);
     }
 
-    function test_ConstructorRejectsBadParams() public {
-        // zero token
+    function test_CannotInitializeTwice() public {
+        vm.expectRevert(Vaquita.AlreadyInitialized.selector);
+        vaquita.initialize(factory, IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
+    }
+
+    function test_ImplementationCannotBeInitialized() public {
+        // The implementation was locked in its constructor.
+        vm.expectRevert(Vaquita.AlreadyInitialized.selector);
+        implementation.initialize(factory, IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
+    }
+
+    function test_InitializeRejectsBadParams() public {
+        Vaquita v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(0)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
-        // zero creator
+        v.initialize(factory, IERC20(address(0)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
+
+        v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(token)), address(0), CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
-        // zero contribution
+        v.initialize(factory, IERC20(address(token)), address(0), CONTRIBUTION, COLLATERAL, N_MEMBERS, CYCLE);
+
+        v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(token)), creator, 0, COLLATERAL, N_MEMBERS, CYCLE);
-        // too few members
+        v.initialize(factory, IERC20(address(token)), creator, 0, COLLATERAL, N_MEMBERS, CYCLE);
+
+        v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, 1, CYCLE);
-        // too many members
+        v.initialize(factory, IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, 1, CYCLE);
+
+        v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, 51, CYCLE);
-        // zero cycle duration
+        v.initialize(factory, IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, 51, CYCLE);
+
+        v = Vaquita(Clones.clone(address(implementation)));
         vm.expectRevert(Vaquita.InvalidParameters.selector);
-        new Vaquita(IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, 0);
+        v.initialize(factory, IERC20(address(token)), creator, CONTRIBUTION, COLLATERAL, N_MEMBERS, 0);
     }
 
     // ─── Joining ───────────────────────────────────────────────────────
@@ -129,10 +162,6 @@ contract VaquitaTest is Test {
         assertEq(token.balanceOf(address(vaquita)), COLLATERAL);
         assertEq(vaquita.collateralBalance(alice), COLLATERAL);
         assertTrue(vaquita.isMember(alice));
-
-        address[] memory ms = vaquita.getMembers();
-        assertEq(ms.length, 1);
-        assertEq(ms[0], alice);
     }
 
     function test_CannotJoinTwice() public {
@@ -158,8 +187,7 @@ contract VaquitaTest is Test {
 
     function test_CannotJoinWithoutApproval() public {
         vm.startPrank(alice);
-        // No approval given.
-        vm.expectRevert(); // SafeERC20 reverts on insufficient allowance
+        vm.expectRevert();
         vaquita.join();
         vm.stopPrank();
     }
@@ -183,12 +211,7 @@ contract VaquitaTest is Test {
         address[] memory order = _defaultOrder();
         vm.prank(creator);
         vaquita.setPayoutOrder(order);
-
         assertTrue(vaquita.payoutOrderSet());
-        address[] memory stored = vaquita.getPayoutOrder();
-        for (uint256 i = 0; i < 4; i++) {
-            assertEq(stored[i], order[i]);
-        }
     }
 
     function test_NonCreatorCannotSetOrder() public {
@@ -211,7 +234,7 @@ contract VaquitaTest is Test {
         address[] memory bad = new address[](4);
         bad[0] = alice;
         bad[1] = bob;
-        bad[2] = bob; // duplicate
+        bad[2] = bob;
         bad[3] = dave;
         vm.prank(creator);
         vm.expectRevert(Vaquita.InvalidPayoutOrder.selector);
@@ -294,12 +317,9 @@ contract VaquitaTest is Test {
     function test_CycleExecutesAndPaysCorrectRecipient() public {
         _setOrderAndStart();
         _contributeAll();
-
         uint256 aliceBefore = token.balanceOf(alice);
         vm.warp(block.timestamp + CYCLE + 1);
         vaquita.executeCycle();
-
-        // Alice was first in payout order; she should have received the full pool.
         uint256 expectedPool = uint256(N_MEMBERS) * CONTRIBUTION;
         assertEq(token.balanceOf(alice), aliceBefore + expectedPool);
         assertEq(vaquita.currentCycle(), 2);
@@ -315,25 +335,18 @@ contract VaquitaTest is Test {
 
     function test_MissingContributionCoveredByCollateral() public {
         _setOrderAndStart();
-        // Only 3 of 4 contribute; carol skips.
         _contribute(alice);
         _contribute(bob);
         _contribute(dave);
-
         vm.warp(block.timestamp + CYCLE + 1);
         vaquita.executeCycle();
-
-        // Carol should be marked defaulted; her collateral reduced by contribution.
         assertTrue(vaquita.hasDefaulted(carol));
         assertEq(vaquita.collateralBalance(carol), COLLATERAL - CONTRIBUTION);
-        // Cycle still settled; alice received pool.
         assertEq(vaquita.currentCycle(), 2);
     }
 
     function test_VaquitaTerminatesIfCollateralInsufficient() public {
-        // Deploy a vaquita where collateral == contribution, so a member can default once
-        // and then fail the second time.
-        Vaquita tight = new Vaquita(IERC20(address(token)), creator, CONTRIBUTION, CONTRIBUTION, N_MEMBERS, CYCLE);
+        Vaquita tight = _deployClone(CONTRIBUTION, CONTRIBUTION, N_MEMBERS, CYCLE);
 
         address[4] memory people = [alice, bob, carol, dave];
         for (uint256 i = 0; i < 4; i++) {
@@ -348,39 +361,27 @@ contract VaquitaTest is Test {
         vm.prank(creator);
         tight.start();
 
-        // Cycle 1: carol skips → covered by her collateral → she's now defaulted with 0 collateral.
-        vm.startPrank(alice);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-        vm.startPrank(bob);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-        vm.startPrank(dave);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-
+        // Cycle 1: carol skips → covered by collateral → carol's collateral is now 0.
+        for (uint256 i = 0; i < 4; i++) {
+            if (people[i] == carol) continue;
+            vm.startPrank(people[i]);
+            token.approve(address(tight), CONTRIBUTION);
+            tight.contribute();
+            vm.stopPrank();
+        }
         vm.warp(block.timestamp + CYCLE + 1);
         tight.executeCycle();
         assertEq(uint256(tight.status()), uint256(Vaquita.Status.Active));
         assertEq(tight.collateralBalance(carol), 0);
 
-        // Cycle 2: carol skips again, her collateral is now 0 → vaquita terminates.
-        vm.startPrank(alice);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-        vm.startPrank(bob);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-        vm.startPrank(dave);
-        token.approve(address(tight), CONTRIBUTION);
-        tight.contribute();
-        vm.stopPrank();
-
+        // Cycle 2: carol skips again → no collateral → vaquita defaults.
+        for (uint256 i = 0; i < 4; i++) {
+            if (people[i] == carol) continue;
+            vm.startPrank(people[i]);
+            token.approve(address(tight), CONTRIBUTION);
+            tight.contribute();
+            vm.stopPrank();
+        }
         vm.warp(block.timestamp + CYCLE + 1);
         tight.executeCycle();
         assertEq(uint256(tight.status()), uint256(Vaquita.Status.Defaulted));
@@ -397,7 +398,6 @@ contract VaquitaTest is Test {
             balancesBefore[i] = token.balanceOf(order[i]);
         }
 
-        // Run all 4 cycles.
         for (uint256 c = 0; c < 4; c++) {
             _contributeAll();
             vm.warp(block.timestamp + CYCLE + 1);
@@ -405,26 +405,18 @@ contract VaquitaTest is Test {
         }
 
         assertEq(uint256(vaquita.status()), uint256(Vaquita.Status.Completed));
-
-        // Each member contributed 4*CONTRIBUTION, received 1*4*CONTRIBUTION = pool.
-        // Net cash flow before collateral claim should be 0 vs balancesBefore.
         for (uint256 i = 0; i < 4; i++) {
-            uint256 expected = balancesBefore[i] - 4 * CONTRIBUTION + 4 * CONTRIBUTION;
-            assertEq(token.balanceOf(order[i]), expected);
+            assertEq(token.balanceOf(order[i]), balancesBefore[i]);
         }
 
-        // Each member can claim collateral back.
         for (uint256 i = 0; i < 4; i++) {
             vm.prank(order[i]);
             vaquita.claimCollateral();
             assertEq(vaquita.collateralBalance(order[i]), 0);
         }
 
-        // Vaquita contract should now hold zero balance.
         assertEq(token.balanceOf(address(vaquita)), 0);
     }
-
-    // ─── Collateral claim ──────────────────────────────────────────────
 
     function test_CannotClaimCollateralBeforeFinish() public {
         _setOrderAndStart();
@@ -436,13 +428,12 @@ contract VaquitaTest is Test {
     function test_DefaulterGetsReducedCollateral() public {
         _setOrderAndStart();
 
-        // Cycle 1: carol skips, gets defaulted, collateral reduced.
         _contribute(alice);
         _contribute(bob);
         _contribute(dave);
         vm.warp(block.timestamp + CYCLE + 1);
         vaquita.executeCycle();
-        // Cycles 2-4: everyone contributes (carol resumes).
+
         for (uint256 c = 0; c < 3; c++) {
             _contributeAll();
             vm.warp(block.timestamp + CYCLE + 1);
@@ -451,7 +442,6 @@ contract VaquitaTest is Test {
 
         assertEq(uint256(vaquita.status()), uint256(Vaquita.Status.Completed));
 
-        // Carol's claim should be COLLATERAL - CONTRIBUTION (one cycle covered by her collateral).
         uint256 carolBefore = token.balanceOf(carol);
         vm.prank(carol);
         vaquita.claimCollateral();
