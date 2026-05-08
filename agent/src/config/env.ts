@@ -1,5 +1,11 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
+
+// agent/src/config/ → up 3 levels → project root .env
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: join(__dirname, "../../../.env") });
 
 /**
  * Strongly-typed environment configuration for the agent.

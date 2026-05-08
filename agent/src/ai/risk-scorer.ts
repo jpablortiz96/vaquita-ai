@@ -41,7 +41,7 @@ Self-reported:
 ${JSON.stringify(input.selfReported ?? {}, null, 2)}
 
 Onchain summary:
-${JSON.stringify(input.onchain ?? {}, null, 2)}
+${JSON.stringify(input.onchain ?? {}, (_, v) => (typeof v === "bigint" ? v.toString() : v), 2)}
 
 References (existing trusted members vouching for this candidate):
 ${(input.references ?? []).join(", ") || "(none)"}
