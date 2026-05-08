@@ -189,7 +189,50 @@ Before building ANY new feature, ask: "Would 80% of other hackathon teams build 
 - Arbitrum One: https://arbiscan.io
 - Arbitrum Sepolia: https://sepolia.arbiscan.io
 
-## 13. Operating Reminders for Claude Code
+## 13. Vaquita Contract State Machine
+
+```
+┌──────────┐  setPayoutOrder    ┌──────────┐
+│ Created  │ ──────────────────▶│ Created  │
+│          │  (creator only)    │ +order   │
+└─────┬────┘                    └─────┬────┘
+      │ join() x N                    │ start()
+      │ (collateral escrowed)         │ (creator only)
+      ▼                               ▼
+   waiting                       ┌──────────┐
+                                 │  Active  │
+                                 │ cycle 1  │
+                                 └─────┬────┘
+                                       │ contribute() x N
+                                       │ + executeCycle()
+                                       │ (after deadline,
+                                       │  permissionless)
+                                       ▼
+                                  ┌──────────┐  if collateral
+                                  │  Active  │  insufficient
+                                  │ cycle k  │ ───────────────▶ Defaulted
+                                  └─────┬────┘
+                                        │ k = N → Completed
+                                        ▼
+                                   Completed
+                                        │ claimCollateral()
+                                        ▼
+                                   collateral
+                                   returned
+```
+
+### Key invariants
+- Total token balance held by the contract = sum of unclaimed collateral + pool of in-flight cycle.
+- After `Completed`, only collateral remains; all cycle pools have been distributed.
+- `payoutOrder.length == totalMembers` and contains each member exactly once.
+- A member is `hasDefaulted` if they ever missed a contribution, regardless of subsequent cycles.
+
+### Trust model (V1)
+- `creator` is trusted to set a fair payout order. V2 sources order from `IRiskOracle`.
+- All members are trusted not to collude. V2 adds optional ZK-attested KYC.
+- The contract does not need an admin during operation — `executeCycle` is permissionless.
+
+## 14. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

@@ -49,3 +49,19 @@
 **Decision:** Deploy a `MockMXNB` (`mMXNB`) on Arbitrum Sepolia with the same 6-decimal precision as the real token. The Vaquita contracts depend only on the IERC20 interface, so swapping between mock and real is one configuration change.
 **Reasoning:** Avoids blocking development on testnet. The 6-decimal match means amount calculations behave identically. Adding a public faucet on the mock simplifies demos with judges.
 **Consequences:** Documentation must clearly state that `mMXNB` is for testnet only. Mainnet deployment must be hardcoded to use the real MXNB address.
+
+## ADR-7: V1 trusts the creator for payout order
+**Date:** 2026-05-07
+**Status:** Accepted (V1 only)
+**Context:** The AI agent computes risk-adjusted payout order off-chain. Submitting per-cycle scores on-chain via the oracle adds complexity that doesn't change the demo's core narrative for hackathon judging.
+**Decision:** In V1, the `creator` calls `setPayoutOrder` once with the AI-computed list. The contract validates length, membership, and uniqueness but trusts the creator's intent.
+**Reasoning:** Real-world vaquitas are formed among friends and family — the creator is socially accountable. The trust assumption is documented and the upgrade path to oracle-sourced ordering (V2) is straightforward.
+**Consequences:** Acceptable for Mexican families running 5–10 person vaquitas. Not acceptable for fully open / pseudonymous vaquitas — those wait for V2.
+
+## ADR-8: Flat collateral and locked-pool semantics on default
+**Date:** 2026-05-07
+**Status:** Accepted (V1 only)
+**Context:** Designing the collateral model under time pressure. Two competing concerns: position-aware collateral (early recipients should post more) and simple UX for the WhatsApp flow.
+**Decision:** V1 uses a flat per-member collateral set by the creator at deploy. If the vaquita defaults mid-cycle (someone has insufficient collateral), the in-flight cycle's pool is locked in the contract. Members may still claim their remaining collateral.
+**Reasoning:** Flat collateral keeps the WhatsApp onboarding to a single number. Locked-pool semantics avoid the complex equity logic of partial pool refunds. V2 will add position-scaled collateral and pool redistribution.
+**Consequences:** Recommended creator-side guidance: set `collateralAmount = (totalMembers - 1) * contributionAmount` to fully secure. The frontend will hint at this default.
