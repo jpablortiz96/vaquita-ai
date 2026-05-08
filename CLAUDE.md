@@ -189,6 +189,18 @@ Before building ANY new feature, ask: "Would 80% of other hackathon teams build 
 - Arbitrum One: https://arbiscan.io
 - Arbitrum Sepolia: https://sepolia.arbiscan.io
 
+### Live deployments (Arbitrum Sepolia)
+After running `Deploy.s.sol`, the canonical addresses live in `deployments/arbitrum-sepolia.json`. Example:
+
+| Contract | Purpose |
+|---|---|
+| MockMXNB | Test stablecoin with 6 decimals + faucet |
+| Vaquita (implementation) | Locked logic contract used by all clones |
+| VaquitaFactory | Deploys vaquita clones |
+| Genesis Vaquita | First demo vaquita (4 members, 100 mMXNB / 7 days) |
+
+The frontend and AI agent must read these addresses from `deployments/arbitrum-sepolia.json` (committed to the repo) — do not hardcode them.
+
 ## 13. Vaquita Contract State Machine
 
 ```

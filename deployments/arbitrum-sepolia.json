@@ -1,0 +1,36 @@
+{
+  "network": "arbitrum-sepolia",
+  "chainId": 421614,
+  "deployer": "0x8f60C29a7BAC9E16aeBa053e509d7C5FDff8a377",
+  "deployedAt": "2026-05-08T00:00:00Z",
+  "contracts": {
+    "MockMXNB": {
+      "address": "0xBA717164E68625e5e9E9C5Cd380c38ecFACf481c",
+      "decimals": 6,
+      "symbol": "mMXNB",
+      "explorerUrl": "https://sepolia.arbiscan.io/address/0xBA717164E68625e5e9E9C5Cd380c38ecFACf481c"
+    },
+    "VaquitaImplementation": {
+      "address": "0xdf0Da6E12A77a90bbb4cEF1ef448FFAFf1352717",
+      "explorerUrl": "https://sepolia.arbiscan.io/address/0xdf0Da6E12A77a90bbb4cEF1ef448FFAFf1352717"
+    },
+    "VaquitaFactory": {
+      "address": "0xfFa51C1A2c2BDCA722045CB637D1b36E1bE6892E",
+      "explorerUrl": "https://sepolia.arbiscan.io/address/0xfFa51C1A2c2BDCA722045CB637D1b36E1bE6892E"
+    }
+  },
+  "demoVaquita": {
+    "address": "0xb40c602AEb5Cd1be2DfCBE330DF31bFD10d996Fe",
+    "creator": "0x8f60C29a7BAC9E16aeBa053e509d7C5FDff8a377",
+    "explorerUrl": "https://sepolia.arbiscan.io/address/0xb40c602AEb5Cd1be2DfCBE330DF31bFD10d996Fe",
+    "config": {
+      "contributionAmount": "100000000",
+      "contributionDisplay": "100 mMXNB",
+      "collateralAmount": "300000000",
+      "collateralDisplay": "300 mMXNB",
+      "totalMembers": 4,
+      "cycleDuration": 604800,
+      "cycleDurationDisplay": "7 days"
+    }
+  }
+}

@@ -25,3 +25,9 @@
 **Prompt:** Refactor Vaquita.sol from parameterized constructor to Initializable pattern (EIP-1167 compatible). Deploy VaquitaFactory using OpenZeppelin Clones for ~30× cheaper per-vaquita deployment. Adapt existing Vaquita.t.sol (27 tests) and add VaquitaFactory.t.sol (10 tests). Goal: atomic clone+initialize, isolated state per clone, implementation locked against direct initialization.
 
 **Outcome:** Vaquita.sol refactored (constructor locks `_initialized = true`; `initialize()` replaces parameterized constructor; `isInitialized()` view added). VaquitaFactory.sol implemented (EIP-1167 Clones, creator index, pagination, VaquitaCreated event). All 44 tests pass (7 MockMXNB + 27 Vaquita + 10 VaquitaFactory). Gas report saved to docs/gas-report-step3.txt. ADR-9 added to DECISIONS.md. Deploy script and on-chain deployment to Arbitrum Sepolia in Part 2.
+
+## Step 3 Part 2 — Live deployment to Arbitrum Sepolia (Date: 2026-05-08)
+
+**Prompt:** Write Deploy.s.sol, MintDemoTokens.s.sol, CreateDemoVaquita.s.sol. Deploy MockMXNB, Vaquita (implementation), and VaquitaFactory to Arbitrum Sepolia with automatic Arbiscan verification. Create Genesis Vaquita on-chain. Persist addresses to deployments/arbitrum-sepolia.json. Update sponsor docs.
+
+**Outcome:** All three core contracts live on Sepolia, verified on Arbiscan. Genesis Vaquita created at 0xb40c602AEb5Cd1be2DfCBE330DF31bFD10d996Fe. 100,000 mMXNB minted to deployer. Addresses persisted in deployments/arbitrum-sepolia.json and .env. docs/sponsor-integrations/arbitrum.md fully populated. Ready for Step 4 (WhatsApp bot + AI agent setup).
