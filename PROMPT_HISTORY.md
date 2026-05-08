@@ -31,3 +31,9 @@
 **Prompt:** Write Deploy.s.sol, MintDemoTokens.s.sol, CreateDemoVaquita.s.sol. Deploy MockMXNB, Vaquita (implementation), and VaquitaFactory to Arbitrum Sepolia with automatic Arbiscan verification. Create Genesis Vaquita on-chain. Persist addresses to deployments/arbitrum-sepolia.json. Update sponsor docs.
 
 **Outcome:** All three core contracts live on Sepolia, verified on Arbiscan. Genesis Vaquita created at 0xb40c602AEb5Cd1be2DfCBE330DF31bFD10d996Fe. 100,000 mMXNB minted to deployer. Addresses persisted in deployments/arbitrum-sepolia.json and .env. docs/sponsor-integrations/arbitrum.md fully populated. Ready for Step 4 (WhatsApp bot + AI agent setup).
+
+## Step 4 Part 1 — Agent backend (env, chain, AI risk scorer, orchestrator) (Date: 2026-05-08)
+
+**Prompt:** Set up agent/ workspace (Node.js 20 + TypeScript strict, ESM, Vitest). Build typed env config, chain client (viem), risk scorer using Claude Sonnet 4.5, orchestrator combining scoring + payout ordering, and vaquita-service wrapping read/write contract calls. Tests cover env load, deployments load, and live AI calls (skippable).
+
+**Outcome:** agent/ compiles cleanly (zero TypeScript errors). deployments.test.ts 3/3 pass without API key. Full boot check and AI tests require real ANTHROPIC_API_KEY in .env. WhatsApp + HTTP server come in Part 2.

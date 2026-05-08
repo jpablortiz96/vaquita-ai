@@ -270,7 +270,41 @@ Implications:
 - The Vaquita contract has no immutables — they were converted to regular storage variables.
 - Anyone calling `initialize` on a clone before the factory does could hijack it; we mitigate this by only ever creating clones via the factory's `createVaquita`, which initializes atomically in the same transaction.
 
-## 15. Operating Reminders for Claude Code
+## 15. Agent Service Architecture
+
+```
+agent/
+├── src/
+│   ├── config/
+│   │   ├── env.ts          ← typed env validation (zod)
+│   │   └── deployments.ts  ← reads deployments/arbitrum-sepolia.json
+│   ├── chain/
+│   │   ├── client.ts       ← viem public + wallet clients
+│   │   └── abis.ts         ← typed ABIs for the 3 core contracts
+│   ├── ai/
+│   │   ├── claude.ts       ← Anthropic SDK wrapper, JSON helper
+│   │   └── risk-scorer.ts  ← scoreMember + suggestPayoutOrder
+│   ├── core/
+│   │   ├── orchestrator.ts ← coordinates scoring + ordering
+│   │   └── vaquita-service.ts ← read/write contract helpers
+│   ├── types/index.ts
+│   └── index.ts            ← boot check
+├── test/                    ← vitest
+└── package.json             ← ESM, type:"module"
+```
+
+### Service responsibilities
+- **vaquita-service**: stateless wrappers around the contracts. Does NOT decide anything.
+- **risk-scorer**: pure AI calls. Returns scores. Does NOT touch chain.
+- **orchestrator**: combines AI calls into a setup plan. Returns a plan; does NOT submit txs.
+- The eventual HTTP/WhatsApp layer (Part 2) will be the only place that signs and submits.
+
+### Why this separation matters
+- Each layer is independently testable.
+- The orchestrator can be reused by the WhatsApp bot AND the web frontend.
+- AI cost stays bounded — services don't make redundant Claude calls.
+
+## 16. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)
