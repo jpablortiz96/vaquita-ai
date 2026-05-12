@@ -1,17 +1,14 @@
-import { config } from "dotenv";
-import { join, dirname } from "node:path";
+import { config as dotenvConfig } from "dotenv";
 import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { z } from "zod";
 
-// agent/src/config/ → up 3 levels → project root .env
-const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: join(__dirname, "../../../.env") });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-/**
- * Strongly-typed environment configuration for the agent.
- * Variables are loaded from the project-root .env (D:/vaquita-ai/.env)
- * because dotenv looks up the directory tree by default.
- */
+// Load .env from repo root, regardless of where the agent is invoked from.
+dotenvConfig({ path: join(__dirname, "../../../.env") });
+
 const envSchema = z.object({
     // Anthropic
     ANTHROPIC_API_KEY: z.string().min(20, "ANTHROPIC_API_KEY required"),
@@ -22,13 +19,23 @@ const envSchema = z.object({
     DEPLOYER_PRIVATE_KEY: z
         .string()
         .regex(/^(0x)?[0-9a-fA-F]{64}$/, "Invalid private key")
-        .transform((k) => (k.startsWith("0x") ? k : (`0x${k}` as `0x${string}`))),
+        .transform((k) => (k.startsWith("0x") ? k : `0x${k}`)),
 
-    // Optional: only required when running on-chain tests
-    RUN_ONCHAIN_TESTS: z.enum(["true", "false"]).optional().default("false"),
+    // Twilio (WhatsApp)
+    TWILIO_ACCOUNT_SID: z.string().regex(/^AC[a-f0-9]{32}$/, "Invalid Twilio Account SID").optional(),
+    TWILIO_AUTH_TOKEN: z.string().min(20, "TWILIO_AUTH_TOKEN required for bot").optional(),
+    TWILIO_WHATSAPP_FROM: z.string().startsWith("whatsapp:+", "Format: whatsapp:+1234567890").optional(),
+
+    // HTTP server
+    PORT: z.coerce.number().int().positive().default(3001),
+    HOST: z.string().default("0.0.0.0"),
+    PUBLIC_URL: z.string().url().optional(),
 
     // Logging
     LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional().default("info"),
+
+    // Test toggles
+    RUN_ONCHAIN_TESTS: z.enum(["true", "false"]).optional().default("false"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -41,3 +48,8 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = typeof env;
+
+/** True when all Twilio bot variables are configured. */
+export function isBotConfigured(): boolean {
+    return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM);
+}

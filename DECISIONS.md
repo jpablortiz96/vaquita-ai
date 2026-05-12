@@ -73,3 +73,19 @@
 **Decision:** The Vaquita contract is now Initializable (no parameterized constructor). A single implementation is deployed once, and the VaquitaFactory uses OZ Clones to create EIP-1167 minimal proxies that delegate to it.
 **Reasoning:** ~30× cheaper deployment. Standard pattern recognized by every DeFi reviewer. Implementation contract is locked in its own constructor to avoid the "uninitialized implementation" attack.
 **Consequences:** Vaquita storage layout is now critical — adding state variables in upgrades would break clones. We accept this for V1; if upgrade needs arise, we'll move to UUPS proxies in V2.
+
+## ADR-10: V1 bot uses single deployer signer; V2 will use per-user wallets
+**Date:** 2026-05-12
+**Status:** Accepted (V1 only)
+**Context:** Building a fully self-custodial WhatsApp bot in 5 weeks would consume the entire engineering budget. We chose to focus on the conversational + AI experience.
+**Decision:** In V1, the agent's deployer wallet signs all on-chain actions. Each WhatsApp user is identified by phone number; the bot acts on their behalf using the shared wallet.
+**Reasoning:** Reduces hackathon scope to what the judges actually evaluate (UX + AI). Contracts already enforce roles correctly, so custody can be swapped to per-user Privy wallets in V2 without changing Solidity.
+**Consequences:** A demo user cannot truly "own" their vaquita yet — they're operating through the shared signer. This must be disclosed honestly in the pitch and README.
+
+## ADR-11: Fastify over Express for the bot HTTP layer
+**Date:** 2026-05-12
+**Status:** Accepted
+**Context:** Need an HTTP framework for the Twilio webhook.
+**Decision:** Use Fastify v5.
+**Reasoning:** ~2× faster than Express, native TypeScript types, built-in request validation, mature plugin ecosystem (formbody for Twilio's URL-encoded payloads). Express is fine but ages poorly with new TypeScript projects.
+**Consequences:** One more dependency to learn, but the API surface is small.

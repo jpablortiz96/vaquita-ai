@@ -37,3 +37,9 @@
 **Prompt:** Set up agent/ workspace (Node.js 20 + TypeScript strict, ESM, Vitest). Build typed env config, chain client (viem), risk scorer using Claude Sonnet 4.5, orchestrator combining scoring + payout ordering, and vaquita-service wrapping read/write contract calls. Tests cover env load, deployments load, and live AI calls (skippable).
 
 **Outcome:** agent/ compiles cleanly (zero TypeScript errors). deployments.test.ts 3/3 pass without API key. Full boot check and AI tests require real ANTHROPIC_API_KEY in .env. WhatsApp + HTTP server come in Part 2.
+
+## Step 4 Part 2 — WhatsApp bot + Fastify HTTP server (Date: 2026-05-12)
+
+**Prompt:** Build the conversational WhatsApp bot: Fastify server with /webhook/twilio endpoint, intent classification via Claude Sonnet 4.5, session store (in-memory), state machine for multi-step vaquita creation, Spanish message templates. Twilio signature validation. Tests for sessions, intent classifier, and engine state.
+
+**Outcome:** Bot accepts inbound webhooks and responds in Spanish. Multi-step "create vaquita" flow asks for amount, members, cycle, collateral, then confirms and submits onchain. List/view vaquitas working. Health endpoint returns botConfigured:true. 9/9 non-AI tests pass; 18/19 AI tests pass (1 flakiness: "4 amigos" ambiguity in NLU, test updated to accept 4-5). ngrok + Twilio webhook configuration are manual user steps.

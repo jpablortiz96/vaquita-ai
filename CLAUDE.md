@@ -304,7 +304,43 @@ agent/
 - The orchestrator can be reused by the WhatsApp bot AND the web frontend.
 - AI cost stays bounded — services don't make redundant Claude calls.
 
-## 16. Operating Reminders for Claude Code
+## 16. WhatsApp Bot Architecture
+
+```
+User WhatsApp ─→ Twilio Sandbox ─→ webhook POST /webhook/twilio ─→ Fastify server
+                                                                      │
+                                                                      ▼
+                                                              normalizePhone
+                                                                      │
+                                                                      ▼
+                                                              getOrCreateSession
+                                                                      │
+                                       ┌──────────────────────────────┤
+                                       │                              ▼
+                              if in multi-step flow             classifyIntent
+                                       │                       (Claude Sonnet 4.5)
+                                       ▼                              │
+                              advance state                           ▼
+                                       │                       route by kind
+                                       └──────────────┬──────────────┘
+                                                      ▼
+                                          handleMessage → string[]
+                                                      │
+                                                      ▼
+                                            sendWhatsApp(...) via Twilio
+```
+
+### V1 limitations (documented honestly)
+- Sessions are in-memory: lost on server restart. V2 = Supabase.
+- Signing: the deployer wallet signs every onchain action regardless of which user requested it. V2 = per-user Privy wallets.
+- `list_my_vaquitas` shows everything created by the deployer signer, not per-user. V2 = filter by user wallet.
+
+### Why these are acceptable for the hackathon
+- Demo flow is conversational, not custodial: judges care about the AI + UX magic.
+- The contracts already enforce per-user roles (creator, member). Custody can be swapped without redeploying.
+- Documented in DECISIONS.md; we're explicit about what's V1 vs V2.
+
+## 17. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)
