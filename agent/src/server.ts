@@ -3,7 +3,7 @@ import formbody from "@fastify/formbody";
 import { env, isBotConfigured } from "./config/env.js";
 import { handleMessage } from "./bot/engine.js";
 import { normalizePhone } from "./bot/sessions.js";
-import { sendWhatsApp, validateTwilioSignature } from "./bot/twilio-client.js";
+import { validateTwilioSignature } from "./bot/twilio-client.js";
 
 const fastify = Fastify({
     logger: {
@@ -48,10 +48,9 @@ interface TwilioWebhookBody {
 /**
  * Twilio inbound webhook for WhatsApp.
  *
- * Reply immediately with empty TwiML so Twilio doesn't time out or echo anything.
- * Then process the message and deliver replies asynchronously via the REST API.
- * A 600 ms gap between consecutive messages guarantees WhatsApp delivery order —
- * messages sent within ~500 ms of each other can arrive out of sequence.
+ * We process the message synchronously and respond with TwiML <Message> elements.
+ * Twilio reads them and delivers to the user — no outbound REST call needed.
+ * Twilio allows up to 15 s; Claude NLU takes ~1-3 s, well within budget.
  */
 fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, reply) => {
     const body = request.body;
@@ -86,40 +85,20 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
     const phone = normalizePhone(fromRaw);
     fastify.log.info({ phone, text }, "🤖 Processing message");
 
-    // Acknowledge immediately — Twilio retries if we take > 15 s.
-    reply
-        .code(200)
-        .header("Content-Type", "text/xml")
-        .send(twiml([]));
-
     try {
-        fastify.log.info("⚙️ Calling handleMessage...");
         const replies = await handleMessage({ phone, body: text });
-        fastify.log.info({ replyCount: replies.length }, "✅ handleMessage returned replies");
+        fastify.log.info({ replyCount: replies.length }, "✅ Sending TwiML reply");
 
-        for (let i = 0; i < replies.length; i++) {
-            const r = replies[i];
-            if (!r) continue;
-
-            if (i > 0) {
-                await new Promise((resolve) => setTimeout(resolve, 600));
-            }
-
-            fastify.log.info({ index: i, preview: r.slice(0, 80) }, "📤 Sending reply via Twilio REST");
-            try {
-                const sid = await sendWhatsApp({ to: fromRaw, body: r });
-                fastify.log.info({ sid }, "✅ Twilio accepted reply");
-            } catch (sendErr) {
-                fastify.log.error({ err: sendErr, replyIndex: i }, "❌ Twilio REST send failed");
-            }
-        }
+        return reply
+            .code(200)
+            .header("Content-Type", "text/xml")
+            .send(twiml(replies));
     } catch (err) {
         fastify.log.error({ err }, "❌ handleMessage threw");
-        try {
-            await sendWhatsApp({ to: fromRaw, body: "⚠️ Algo salió mal. Intenta de nuevo." });
-        } catch (sendErr) {
-            fastify.log.error({ sendErr }, "❌ Failed to send error reply");
-        }
+        return reply
+            .code(200)
+            .header("Content-Type", "text/xml")
+            .send(twiml(["⚠️ Algo salió mal. Intenta de nuevo."]));
     }
 });
 
