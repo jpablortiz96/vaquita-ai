@@ -3,7 +3,7 @@ import formbody from "@fastify/formbody";
 import { env, isBotConfigured } from "./config/env.js";
 import { handleMessage } from "./bot/engine.js";
 import { normalizePhone } from "./bot/sessions.js";
-import { sendWhatsApp, validateTwilioSignature } from "./bot/twilio-client.js";
+import { validateTwilioSignature } from "./bot/twilio-client.js";
 
 const fastify = Fastify({
     logger: {
@@ -12,6 +12,22 @@ const fastify = Fastify({
 });
 
 await fastify.register(formbody);
+
+/** Escape special XML characters so message text is safe inside <Message>. */
+function escapeXml(s: string): string {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+/** Build a TwiML response containing one <Message> per reply string. */
+function twiml(messages: string[]): string {
+    const body = messages.map((m) => `<Message>${escapeXml(m)}</Message>`).join("");
+    return `<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`;
+}
 
 fastify.get("/health", async () => {
     return {
@@ -32,13 +48,14 @@ interface TwilioWebhookBody {
 /**
  * Twilio inbound webhook for WhatsApp.
  *
- * Twilio expects one of two response types:
- *   A) Empty 200 (we'll send the reply ourselves via REST API), OR
- *   B) Valid TwiML XML <Response>...</Response> that Twilio will send to the user
+ * Architecture: we respond synchronously with TwiML <Message> elements.
+ * Twilio reads them and delivers the messages to the user — no outbound
+ * REST call from our server needed. This is simpler and more reliable than
+ * the "reply 200 + async REST" pattern, which required network access to
+ * api.twilio.com from our server.
  *
- * We use option A: respond with valid empty TwiML and Content-Type=text/xml so
- * Twilio doesn't interpret anything as a message body. Then we send the real
- * reply asynchronously via the REST API.
+ * Timeout budget: Twilio allows up to 30 s for a webhook response.
+ * Claude intent classification takes ~1-3 s, well within the limit.
  */
 fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, reply) => {
     const body = request.body;
@@ -52,7 +69,7 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
         return reply
             .code(200)
             .header("Content-Type", "text/xml")
-            .send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+            .send(twiml([]));
     }
 
     // Optional: verify Twilio signature if PUBLIC_URL is set
@@ -73,52 +90,34 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
     const phone = normalizePhone(fromRaw);
     fastify.log.info({ phone, text }, "🤖 Processing message");
 
-    // Respond immediately with empty TwiML so Twilio doesn't echo anything.
-    // This is the CRITICAL fix — sending "<Response/>" without proper Content-Type
-    // and XML declaration caused Twilio to treat it as a message body.
-    reply
-        .code(200)
-        .header("Content-Type", "text/xml")
-        .send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
-
-    // Process and reply asynchronously via REST API
     try {
-        fastify.log.info("⚙️ Calling handleMessage...");
         const replies = await handleMessage({ phone, body: text });
-        fastify.log.info({ replyCount: replies.length }, "✅ handleMessage returned replies");
+        fastify.log.info({ replyCount: replies.length }, "✅ Sending TwiML reply");
 
-        for (let i = 0; i < replies.length; i++) {
-            const r = replies[i];
-            if (!r) continue;
-            fastify.log.info({ index: i, preview: r.slice(0, 80) }, "📤 Sending reply via Twilio REST");
-            try {
-                const sid = await sendWhatsApp({ to: fromRaw, body: r });
-                fastify.log.info({ sid }, "✅ Twilio accepted reply");
-            } catch (sendErr) {
-                fastify.log.error({ err: sendErr, replyIndex: i }, "❌ Twilio REST send failed");
-            }
-        }
+        return reply
+            .code(200)
+            .header("Content-Type", "text/xml")
+            .send(twiml(replies));
     } catch (err) {
         fastify.log.error({ err }, "❌ handleMessage threw");
-        try {
-            await sendWhatsApp({ to: fromRaw, body: "⚠️ Algo salió mal. Intenta de nuevo." });
-        } catch (sendErr) {
-            fastify.log.error({ sendErr }, "❌ Failed to send error reply");
-        }
+        return reply
+            .code(200)
+            .header("Content-Type", "text/xml")
+            .send(twiml(["⚠️ Algo salió mal. Intenta de nuevo."]));
     }
 });
 
 async function start() {
     if (!isBotConfigured()) {
-        fastify.log.warn("Twilio is not configured — bot endpoints will return errors when triggered.");
+        fastify.log.warn("Twilio not fully configured — signature validation will be skipped.");
     }
     try {
         await fastify.listen({ port: env.PORT, host: env.HOST });
         fastify.log.info(`🐄 VaquitaAI bot listening on ${env.HOST}:${env.PORT}`);
         if (env.PUBLIC_URL) {
-            fastify.log.info(`Configure Twilio webhook to: ${env.PUBLIC_URL}/webhook/twilio`);
+            fastify.log.info(`Twilio webhook: ${env.PUBLIC_URL}/webhook/twilio`);
         } else {
-            fastify.log.info("Set PUBLIC_URL after starting ngrok so signature validation activates.");
+            fastify.log.info("Set PUBLIC_URL in .env to enable signature validation.");
         }
     } catch (err) {
         fastify.log.error(err);
