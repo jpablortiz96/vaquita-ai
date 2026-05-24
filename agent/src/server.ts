@@ -3,7 +3,7 @@ import formbody from "@fastify/formbody";
 import { env, isBotConfigured } from "./config/env.js";
 import { handleMessage } from "./bot/engine.js";
 import { normalizePhone } from "./bot/sessions.js";
-import { validateTwilioSignature } from "./bot/twilio-client.js";
+import { sendWhatsApp, validateTwilioSignature } from "./bot/twilio-client.js";
 
 const fastify = Fastify({
     logger: {
@@ -86,7 +86,20 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
     fastify.log.info({ phone, text }, "🤖 Processing message");
 
     try {
-        const replies = await handleMessage({ phone, body: text });
+        fastify.log.info("⚙️ Calling handleMessage...");
+        const replies = await handleMessage({
+            phone,
+            body: text,
+            sendToOther: async ({ toPhone, body: msgBody }) => {
+                try {
+                    const to = toPhone.startsWith("whatsapp:") ? toPhone : `whatsapp:${toPhone}`;
+                    await sendWhatsApp({ to, body: msgBody });
+                    fastify.log.info({ toPhone }, "📨 Sent proactive message to other user");
+                } catch (e) {
+                    fastify.log.error({ e, toPhone }, "❌ Proactive message failed");
+                }
+            },
+        });
         fastify.log.info({ replyCount: replies.length }, "✅ Sending TwiML reply");
 
         return reply

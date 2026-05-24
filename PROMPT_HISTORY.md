@@ -43,3 +43,9 @@
 **Prompt:** Build the conversational WhatsApp bot: Fastify server with /webhook/twilio endpoint, intent classification via Claude Sonnet 4.5, session store (in-memory), state machine for multi-step vaquita creation, Spanish message templates. Twilio signature validation. Tests for sessions, intent classifier, and engine state.
 
 **Outcome:** Bot accepts inbound webhooks and responds in Spanish. Multi-step "create vaquita" flow asks for amount, members, cycle, collateral, then confirms and submits onchain. List/view vaquitas working. Health endpoint returns botConfigured:true. 9/9 non-AI tests pass; 18/19 AI tests pass (1 flakiness: "4 amigos" ambiguity in NLU, test updated to accept 4-5). ngrok + Twilio webhook configuration are manual user steps.
+
+## Step 5 — Risk scorer integrated into join flow (Date: 2026-05-24)
+
+**Prompt:** Build the full join workflow: invitation codes, 4-question join interview, AI risk scoring via Claude Sonnet 4.5, proactive approval prompt to creator, sí/no approval flow, onchain join() executed by deployer on behalf of candidate, cross-user proactive messaging.
+
+**Outcome:** Bot accepts "invitar" → generates 8-char code; recipient sends "quiero unirme con código X" → 4-question interview → scoreMember() via Claude → creator receives proactive WhatsApp with score/rationale/red-flags → "sí" triggers approveToken() + joinVaquita() onchain → both parties notified. 15/15 non-AI tests pass (6 new invitations store tests). ADR-12 documents phone-based candidate identity tradeoff. OutboundSender abstraction keeps engine.ts free of Twilio coupling.

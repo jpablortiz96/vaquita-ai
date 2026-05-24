@@ -340,7 +340,50 @@ User WhatsApp ─→ Twilio Sandbox ─→ webhook POST /webhook/twilio ─→ F
 - The contracts already enforce per-user roles (creator, member). Custody can be swapped without redeploying.
 - Documented in DECISIONS.md; we're explicit about what's V1 vs V2.
 
-## 17. Operating Reminders for Claude Code
+## 17. Risk Scorer Integration in Join Flow
+
+```
+Creator                                Candidate
+  │                                      │
+  │ "invitar"                            │
+  ├─→ generate 8-char code               │
+  ├─→ message with code + onboarding     │
+  │   instructions                       │
+  │                                      │
+  │   shares code via WhatsApp/SMS       │
+  │ ───────────────────────────────────▶ │
+  │                                      │ join sandbox + "código abc12345"
+  │                                      ├─→ ask name
+  │                                      ├─→ ask occupation
+  │                                      ├─→ ask income
+  │                                      ├─→ ask relation months
+  │                                      │
+  │                                      └─→ scoreMember() ← Claude Sonnet 4.5
+  │                                          │
+  │  ◀─── proactive WhatsApp ────────────────┤
+  │ "Nueva solicitud, score 78..."
+  │ "¿Apruebas?"                         │
+  │                                      │
+  │ "sí"                                 │
+  ├─→ approveToken()                     │
+  ├─→ joinVaquita()                      │
+  │                                      │
+  │  ───── proactive WhatsApp ──────────▶ │
+  │                                      │ "🎉 ¡Te aprobaron!"
+```
+
+### V1 limitations (documented honestly)
+- Invitations are in-memory; lost on restart. V2 = Supabase.
+- The deployer signer executes `join()` on behalf of the candidate. V2 = candidate's own Privy wallet.
+- The candidate's "address" sent to the risk scorer is a hash of their phone, not a real wallet. V2 = real wallet history.
+- Approval is binary; we don't yet apply the scorer's suggested position to the on-chain payout order. V2 = automated ordering based on accumulated scores.
+
+### Why these work for the hackathon
+- Judges experience the FULL conversational AI flow: invite → ask → score → review → approve → join onchain.
+- Every onchain action is real and verifiable on Arbiscan.
+- The risk scorer is genuinely using Claude Sonnet 4.5 — not a mock.
+
+## 18. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

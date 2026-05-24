@@ -134,6 +134,27 @@ export const writeService = {
             functionName: "executeCycle",
         });
     },
+
+    async approveToken(spender: Address, amount: bigint): Promise<`0x${string}`> {
+        const hash = await walletClient.writeContract({
+            address: deployments.contracts.MockMXNB.address as Address,
+            abi: mockMXNBAbi,
+            functionName: "approve",
+            args: [spender, amount],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return hash;
+    },
+
+    async joinVaquita(vaquita: Address): Promise<`0x${string}`> {
+        const hash = await walletClient.writeContract({
+            address: vaquita,
+            abi: vaquitaAbi,
+            functionName: "join",
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return hash;
+    },
 };
 
 export const SIGNER_ADDRESS = deployerAddress;

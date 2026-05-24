@@ -89,3 +89,11 @@
 **Decision:** Use Fastify v5.
 **Reasoning:** ~2× faster than Express, native TypeScript types, built-in request validation, mature plugin ecosystem (formbody for Twilio's URL-encoded payloads). Express is fine but ages poorly with new TypeScript projects.
 **Consequences:** One more dependency to learn, but the API surface is small.
+
+## ADR-12: Phone-based candidate identity in V1
+**Date:** 2026-05-24
+**Status:** Accepted (V1 only)
+**Context:** The risk scorer needs an `address` field for each candidate. In V1 users don't have their own wallets — the deployer signs everything.
+**Decision:** Derive a deterministic pseudo-address from the candidate's phone number (hex-encoded, padded to 40 chars). This is used purely as an internal key for the AI service.
+**Reasoning:** Lets the existing risk-scorer API stay unchanged. The pseudo-address never touches a real on-chain transaction; it only flows through the Claude prompt.
+**Consequences:** Onchain history-based scoring is impossible in V1. The scorer relies entirely on self-reported data. V2 = real wallets give us real onchain history.
