@@ -29,7 +29,11 @@ Una IA evalúa el riesgo de cada miembro (sin invasión: solo preguntas básicas
 - _hacer vaquita_ → crear una nueva
 - _invitar_ → compartir tu vaquita con amigos
 - _unirme_ → entrar a una vaquita ajena
+- _arrancar_ → iniciar tu vaquita (cuando todos están dentro)
+- _cuando me toca_ → ver tu posición y fecha
 - _mis vaquitas_ → ver las tuyas
+- _pendientes_ → ver solicitudes pendientes
+- _estado_ → ver en qué paso estás
 - _cancelar_ → cancelar lo que estás haciendo
 
 ¿Qué quieres hacer?`,
@@ -193,6 +197,75 @@ ${args.rationale}${flagsLine}
     invalidName: `🤔 Por favor mándame un nombre válido (al menos 2 letras).`,
 
     error: `⚠️ Algo salió mal de mi lado. Intenta otra vez en un momento.`,
+
+    // ─── Payout / arrancar flow ───
+    arrancarNoVaquita: `🤔 No tengo registrado que tengas una vaquita lista para arrancar. Crea una primero con _hacer vaquita_.`,
+
+    arrancarNotReady: (reason: string) => `⏳ Aún no se puede arrancar la vaquita:\n\n${reason}`,
+
+    proposedOrder: (args: {
+        vaquitaAddress: string;
+        memberDetails: Array<{ position: number; name: string; score: number; cycleStartEstimate: Date }>;
+        reasoning: string;
+    }) => {
+        const lines = args.memberDetails.map(
+            (m) =>
+                `${m.position}. *${m.name}* (Score: ${m.score}/100)\n   Recibe alrededor del: ${m.cycleStartEstimate.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}`,
+        );
+        return `🤖 *Orden propuesto por la IA:*
+
+${lines.join("\n\n")}
+
+📝 *Razonamiento:*
+${args.reasoning}
+
+📍 Vaquita: \`${args.vaquitaAddress.slice(0, 10)}...\`
+
+Responde *sí* para arrancar la vaquita onchain con este orden, o *no* para cancelar.`;
+    },
+
+    starting: `⏳ Arrancando tu vaquita onchain...\n\nVoy a fijar el orden y activarla. Esto tarda unos segundos.`,
+
+    started: (args: {
+        vaquitaAddress: string;
+        setOrderTx: string;
+        startTx: string;
+    }) => `🎉 *¡Tu vaquita está activa!*
+
+Orden fijado y activada exitosamente. Acabo de notificar a todos los miembros.
+
+📍 Vaquita: \`${args.vaquitaAddress}\`
+
+🔗 Transacciones:
+- Set order: \`${args.setOrderTx.slice(0, 16)}...\`
+- Start: \`${args.startTx.slice(0, 16)}...\`
+
+Ver en Arbiscan:
+https://sepolia.arbiscan.io/address/${args.vaquitaAddress}`,
+
+    memberStartedNotification: (args: {
+        memberName: string;
+        position: number;
+        totalMembers: number;
+        receiveDate: Date;
+        contributionAmount: string;
+        cycleDays: number;
+    }) => {
+        const dateStr = args.receiveDate.toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        });
+        return `🐄 *¡La vaquita arrancó!*
+
+Hola *${args.memberName}*, tu vaquita acaba de activarse onchain.
+
+📊 *Tu lugar en la cola:* posición *${args.position}* de ${args.totalMembers}
+📅 *Te toca recibir alrededor del:* ${dateStr}
+💰 *Cada ${args.cycleDays} días aportas:* ${args.contributionAmount} mMXNB
+
+Te avisaré cuando te toque aportar y cuando te toque recibir.`;
+    },
 };
 
 // Suppress unused import warning — JoinInput is used by callers who import from this file.

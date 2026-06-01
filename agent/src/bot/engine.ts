@@ -14,6 +14,8 @@ import {
     getPendingApproval,
     removePendingApproval,
     findPendingApprovalsForCreator,
+    saveMemberScore,
+    getMembersScores,
     type PendingApproval,
 } from "./invitations.js";
 import type { CreateStep, JoinStep, CreateVaquitaInput, JoinInput } from "./types.js";
@@ -75,6 +77,19 @@ export async function handleMessage(args: {
     if (session.state.kind === "creating_vaquita") {
         return handleCreateFlow(phone, text, session.state.step, session.state.partial);
     }
+    if (session.state.kind === "confirming_payout") {
+        if (/^(s[ií]|dale|ok|confirmo|sip|claro)/i.test(text)) {
+            const replies = [MESSAGES.starting];
+            const result = await executeArrancar({ creatorPhone: phone, plan: session.state.plan, sendToOther });
+            return [...replies, ...result];
+        }
+        if (/^(no|cancelar|mejor no)/i.test(text)) {
+            resetSession(phone);
+            return [MESSAGES.cancelled];
+        }
+        return ["Responde *sí* para confirmar el orden propuesto, o *no* para cancelar."];
+    }
+
     if (session.state.kind === "joining_vaquita") {
         // Candidate is waiting for creator approval — explain and offer an escape hatch.
         if (session.state.step === "scoring") {
@@ -118,6 +133,12 @@ export async function handleMessage(args: {
         case "view_vaquita":
             if (intent.address) return viewVaquita(intent.address);
             return [MESSAGES.help];
+
+        case "start_vaquita":
+            return startArrancarFlow(phone, sendToOther);
+
+        case "when_my_turn":
+            return whenMyTurn(phone);
 
         case "confirm":
             return handleConfirmIntent(phone, sendToOther);
@@ -476,6 +497,19 @@ async function executeApproval(args: {
         }
         await writeService.joinVaquita(approval.vaquitaAddress);
 
+        // Save the risk score for later — when the creator runs "arrancar",
+        // we'll use these scores to compute the optimal payout order.
+        saveMemberScore({
+            vaquitaAddress: approval.vaquitaAddress,
+            candidatePhone: approval.candidatePhone,
+            candidateName: approval.candidateName,
+            score: approval.score,
+            rationale: approval.rationale,
+            suggestedPosition: approval.suggestedPosition,
+            approvedAt: Date.now(),
+        });
+        console.log(`[APPROVE] saved member score for vaquita=${approval.vaquitaAddress} candidate=${approval.candidatePhone}`);
+
         resetSession(approval.candidatePhone);
 
         // Notify the candidate with text + optional voice.
@@ -566,6 +600,108 @@ async function viewVaquita(address: Address): Promise<string[]> {
         return [lines];
     } catch (err) {
         console.error("Failed to view vaquita:", err);
+        return [MESSAGES.error];
+    }
+}
+
+// ─── Start (arrancar) flow ──────────────────────────────────────────
+
+async function startArrancarFlow(creatorPhone: string, sendToOther?: OutboundSender): Promise<string[]> {
+    const { buildPayoutPlan, getMostRecentVaquita } = await import("../core/payout-orchestrator.js");
+    try {
+        const vaquitaAddress = await getMostRecentVaquita();
+        if (!vaquitaAddress) return [MESSAGES.arrancarNoVaquita];
+
+        const plan = await buildPayoutPlan(vaquitaAddress);
+        if (!plan.isReadyToExecute) {
+            return [MESSAGES.arrancarNotReady(plan.reason ?? "razón desconocida")];
+        }
+
+        setState(creatorPhone, { kind: "confirming_payout", vaquitaAddress, plan });
+        return [MESSAGES.proposedOrder({ vaquitaAddress, memberDetails: plan.memberDetails, reasoning: plan.reasoning })];
+    } catch (err) {
+        console.error("[ARRANCAR] buildPayoutPlan failed:", err);
+        return [MESSAGES.error];
+    }
+}
+
+async function executeArrancar(args: {
+    creatorPhone: string;
+    plan: import("../core/payout-orchestrator.js").PayoutPlan;
+    sendToOther?: OutboundSender;
+}): Promise<string[]> {
+    const { creatorPhone, plan, sendToOther } = args;
+    const { executePayoutPlan } = await import("../core/payout-orchestrator.js");
+
+    try {
+        const { setOrderTx, startTx } = await executePayoutPlan(plan);
+        resetSession(creatorPhone);
+
+        const state = await readService.getVaquitaState(plan.vaquitaAddress);
+        const contributionHuman = readService.formatTokenAmount(state.config.contributionAmount);
+        const cycleDays = Math.round(Number(state.config.cycleDuration) / 86400);
+
+        for (const m of plan.memberDetails) {
+            if (!m.phone || !sendToOther) continue;
+            await sendToOther({
+                toPhone: m.phone,
+                body: MESSAGES.memberStartedNotification({
+                    memberName: m.name,
+                    position: m.position,
+                    totalMembers: plan.memberDetails.length,
+                    receiveDate: m.cycleStartEstimate,
+                    contributionAmount: contributionHuman,
+                    cycleDays,
+                }),
+            });
+            // Optional voice notification.
+            try {
+                const { isVoiceConfigured } = await import("../config/env.js");
+                if (isVoiceConfigured()) {
+                    const { synthesizeSpanish, audioPublicUrl } = await import("../ai/voice.js");
+                    const { sendWhatsAppMedia } = await import("./twilio-client.js");
+                    const first = m.name.split(" ")[0] ?? m.name;
+                    const text = `Hola ${first}, la vaquita acaba de arrancar. Eres la posición ${m.position} de ${plan.memberDetails.length}. Te tocará recibir el ${m.cycleStartEstimate.toLocaleDateString("es-MX", { day: "numeric", month: "long" })}. Cada ${cycleDays} días vas a aportar ${contributionHuman} pesos digitales. ¡Mucha suerte!`;
+                    const { filename } = await synthesizeSpanish(text);
+                    const url = audioPublicUrl(filename);
+                    const to = m.phone.startsWith("whatsapp:") ? m.phone : `whatsapp:${m.phone}`;
+                    await sendWhatsAppMedia({ to, body: "🎙️ Tu posición en la vaquita", mediaUrl: url });
+                }
+            } catch (vErr) {
+                console.error("[ARRANCAR] voice notify failed (non-fatal):", vErr);
+            }
+        }
+
+        return [MESSAGES.started({ vaquitaAddress: plan.vaquitaAddress, setOrderTx, startTx })];
+    } catch (err) {
+        console.error("[ARRANCAR] executePayoutPlan failed:", err);
+        resetSession(creatorPhone);
+        return [MESSAGES.error];
+    }
+}
+
+async function whenMyTurn(phone: string): Promise<string[]> {
+    const { getMostRecentVaquita, buildPayoutPlan } = await import("../core/payout-orchestrator.js");
+    try {
+        const vaq = await getMostRecentVaquita();
+        if (!vaq) return ["🤔 No encuentro una vaquita activa donde estés inscrito."];
+
+        const scores = getMembersScores(vaq);
+        const mine = scores.find((s) => s.candidatePhone === phone);
+        if (!mine) {
+            return [`🤔 No te encuentro como miembro aprobado de la vaquita actual.`];
+        }
+
+        const plan = await buildPayoutPlan(vaq);
+        const myEntry = plan.memberDetails.find((m) => m.phone === phone);
+        if (!myEntry) {
+            return [`🤔 Aún no se ha definido el orden de pagos. Cuando el creador escriba _arrancar_, te avisaré.`];
+        }
+        return [
+            `📊 *Tu posición:* ${myEntry.position}/${plan.memberDetails.length}\n📅 *Te toca recibir:* ${myEntry.cycleStartEstimate.toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}`,
+        ];
+    } catch (err) {
+        console.error("[WHEN_MY_TURN] failed:", err);
         return [MESSAGES.error];
     }
 }

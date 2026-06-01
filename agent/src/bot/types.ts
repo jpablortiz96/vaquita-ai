@@ -12,7 +12,8 @@ export type ConversationState =
           creatorPhone: string;
           inviteCode: string;
       }
-    | { kind: "viewing_vaquita"; vaquita: Address };
+    | { kind: "viewing_vaquita"; vaquita: Address }
+    | { kind: "confirming_payout"; vaquitaAddress: Address; plan: import("../core/payout-orchestrator.js").PayoutPlan };
 
 export type CreateStep =
     | "ask_amount"
@@ -56,6 +57,8 @@ export type Intent =
     | { kind: "create_vaquita"; partial: Partial<CreateVaquitaInput> }
     | { kind: "invite_to_vaquita" }
     | { kind: "join_vaquita"; code?: string }
+    | { kind: "start_vaquita" }
+    | { kind: "when_my_turn" }
     | { kind: "list_my_vaquitas" }
     | { kind: "view_vaquita"; address?: Address }
     | { kind: "help" }

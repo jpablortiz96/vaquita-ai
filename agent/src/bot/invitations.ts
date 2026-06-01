@@ -37,6 +37,40 @@ export interface PendingApproval {
 const invitations = new Map<string, Invitation>();
 const pendingApprovals = new Map<string, PendingApproval>();
 
+/**
+ * Stores risk scores of members who were APPROVED into a vaquita.
+ * Key: `${vaquitaAddress}:${candidatePhone}`. Used later when computing payout order.
+ */
+export interface MemberScoreRecord {
+    vaquitaAddress: Address;
+    candidatePhone: string;
+    candidateName: string;
+    score: number;
+    rationale: string;
+    suggestedPosition: "early" | "middle" | "late";
+    approvedAt: number;
+}
+
+const memberScores = new Map<string, MemberScoreRecord>();
+
+function scoreKey(vaquitaAddress: Address, candidatePhone: string): string {
+    return `${vaquitaAddress.toLowerCase()}:${candidatePhone}`;
+}
+
+export function saveMemberScore(record: MemberScoreRecord): void {
+    memberScores.set(scoreKey(record.vaquitaAddress, record.candidatePhone), record);
+}
+
+export function getMembersScores(vaquitaAddress: Address): MemberScoreRecord[] {
+    const key = vaquitaAddress.toLowerCase();
+    return [...memberScores.values()].filter((r) => r.vaquitaAddress.toLowerCase() === key);
+}
+
+export function getMemberPhone(vaquitaAddress: Address, _memberOnchainAddress: Address): string | null {
+    const scores = getMembersScores(vaquitaAddress);
+    return scores[0]?.candidatePhone ?? null;
+}
+
 /** Generate a short, friendly invite code (8 chars, lowercase alphanumeric). */
 export function generateInviteCode(): string {
     const bytes = randomBytes(6);
@@ -91,4 +125,5 @@ export function removePendingApproval(candidatePhone: string): void {
 export function _clearAllInvitations(): void {
     invitations.clear();
     pendingApprovals.clear();
+    memberScores.clear();
 }

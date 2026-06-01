@@ -55,3 +55,9 @@
 **Prompt:** Integrate ElevenLabs TTS for Spanish voice messages. Send personalized welcome audio when candidate is approved. Cache by sha1(voice+text) hash, serve via Fastify static at /audio/*, attach via Twilio mediaUrl. Graceful fallback to text-only if voice not configured.
 
 **Outcome:** Voice synthesis service (agent/src/ai/voice.ts) with content-addressed cache. Approval flow sends text + voice audio to candidate. POST /voice/synthesize endpoint for testing. @fastify/static serves audio files publicly. Verified: 56KB MP3 generated and served at http://localhost:3001/audio/audio_7ea8c100ab8d5427.mp3. 20/20 non-AI tests pass. ADR-13 documents local storage architecture.
+
+## Step 9 — AI computes and executes payout order onchain (Date: 2026-06-01)
+
+**Prompt:** Build the "arrancar" flow: AI computes optimal payout order from stored member scores, presents to creator with rationale, executes setPayoutOrder + start onchain on confirmation. Notify each member with text + voice about their position and estimated receive date.
+
+**Outcome:** payout-orchestrator.ts — buildPayoutPlan (Claude suggestPayoutOrder) + executePayoutPlan (setPayoutOrder + start onchain). New intents: start_vaquita, when_my_turn. New state: confirming_payout. memberScores stored on approval, consumed on arrancar. Each member receives personalized text + voice notification with position and estimated date. 20/20 non-AI tests pass. ADR-14 documents human-in-the-loop confirmation model.

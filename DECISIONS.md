@@ -105,3 +105,11 @@
 **Decision:** Generate locally to `agent/audio/`, serve via Fastify static at `/audio/*`, public access via ngrok URL.
 **Reasoning:** Zero infra overhead. Files are deterministically named (sha1 of voice+text), so cache is automatic. When we deploy to Railway, the same setup works with the Railway public URL replacing ngrok.
 **Consequences:** Audio files are gitignored. On a fresh clone, files regenerate on first use. For production scale, we'd swap to S3/Cloudflare R2; not needed for hackathon.
+
+## ADR-14: AI proposes payout order; creator confirms before onchain execution
+**Date:** 2026-06-01
+**Status:** Accepted (V1)
+**Context:** The Risk Scorer computes scores when members join, but those scores need to translate into an actual onchain `setPayoutOrder` call. Two approaches: (A) auto-execute when the vaquita fills, (B) propose to the creator and require confirmation.
+**Decision:** Approach B. The bot computes the order with Claude Sonnet 4.5, shows it to the creator with rationale, requires "sí" to execute setPayoutOrder + start onchain.
+**Reasoning:** Human-in-the-loop is the right trust model for the hackathon: the AI suggests, the human decides. Pitch-friendly. Zero risk of auto-execution bugs.
+**Consequences:** One extra confirmation step. Acceptable — the creator is already engaged enough to type "arrancar".

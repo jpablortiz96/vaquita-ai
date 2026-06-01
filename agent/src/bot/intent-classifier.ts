@@ -17,6 +17,8 @@ Possible intents:
 - "cancel" — quieren cancelar, "cancelar", "salir", "atrás"
 - "confirm" — sí, "dale", "ok", "está bien"
 - "deny" — no, "mejor no", "espérate"
+- "start_vaquita" — el creator quiere arrancar su vaquita (todos los miembros ya se unieron). Frases: "arrancar", "iniciar la vaquita", "ya estamos completos", "empezar"
+- "when_my_turn" — un miembro pregunta cuándo le toca recibir. "cuando me toca", "cuándo es mi turno", "mi posición"
 - "unknown" — no encaja
 
 CRITICAL RULES for create_vaquita parameter extraction:
@@ -35,6 +37,9 @@ Examples (input → output):
 - "quiero unirme a la vaquita" → {"kind":"join_vaquita"}
 - "me uno con código abc12345" → {"kind":"join_vaquita","code":"abc12345"}
 - "código xyz98765" → {"kind":"join_vaquita","code":"xyz98765"}
+- "arrancar" → {"kind":"start_vaquita"}
+- "ya estamos todos, arranca la vaquita" → {"kind":"start_vaquita"}
+- "cuando me toca" → {"kind":"when_my_turn"}
 - "muéstrame mis vaquitas" → {"kind":"list_my_vaquitas"}
 - "ayuda" → {"kind":"help"}
 - "cancelar" → {"kind":"cancel"}
@@ -50,6 +55,8 @@ const intentSchema = z.object({
         "create_vaquita",
         "invite_to_vaquita",
         "join_vaquita",
+        "start_vaquita",
+        "when_my_turn",
         "list_my_vaquitas",
         "view_vaquita",
         "help",
