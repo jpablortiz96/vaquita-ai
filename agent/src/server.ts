@@ -3,7 +3,9 @@ import formbody from "@fastify/formbody";
 import { env, isBotConfigured } from "./config/env.js";
 import { handleMessage } from "./bot/engine.js";
 import { normalizePhone } from "./bot/sessions.js";
-import { sendWhatsApp, validateTwilioSignature } from "./bot/twilio-client.js";
+import { sendWhatsApp, sendWhatsAppAndVerify, sendWhatsAppMedia, validateTwilioSignature } from "./bot/twilio-client.js";
+import fastifyStatic from "@fastify/static";
+import { AUDIO_DIRECTORY } from "./ai/voice.js";
 
 const fastify = Fastify({
     logger: {
@@ -12,6 +14,11 @@ const fastify = Fastify({
 });
 
 await fastify.register(formbody);
+await fastify.register(fastifyStatic, {
+    root: AUDIO_DIRECTORY,
+    prefix: "/audio/",
+    decorateReply: false,
+});
 
 /** Escape special XML characters so message text is safe inside <Message>. */
 function escapeXml(s: string): string {
@@ -28,6 +35,21 @@ function twiml(messages: string[]): string {
     const body = messages.map((m) => `<Message>${escapeXml(m)}</Message>`).join("");
     return `<?xml version="1.0" encoding="UTF-8"?><Response>${body}</Response>`;
 }
+
+fastify.post<{ Body: { text?: string } }>("/voice/synthesize", async (request, reply) => {
+    const text = request.body?.text;
+    if (!text || text.length === 0) {
+        return reply.code(400).send({ error: "text required" });
+    }
+    try {
+        const { synthesizeSpanish, audioPublicUrl } = await import("./ai/voice.js");
+        const { filename } = await synthesizeSpanish(text);
+        return { filename, url: audioPublicUrl(filename) };
+    } catch (err) {
+        fastify.log.error({ err }, "voice synthesis failed");
+        return reply.code(500).send({ error: "synthesis failed" });
+    }
+});
 
 fastify.get("/health", async () => {
     return {
@@ -90,13 +112,20 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
         const replies = await handleMessage({
             phone,
             body: text,
-            sendToOther: async ({ toPhone, body: msgBody }) => {
+            sendToOther: async ({ toPhone, body }) => {
+                console.log(`[SERVER] sendToOther invoked toPhone=${toPhone} body.length=${body.length}`);
                 try {
                     const to = toPhone.startsWith("whatsapp:") ? toPhone : `whatsapp:${toPhone}`;
-                    await sendWhatsApp({ to, body: msgBody });
-                    fastify.log.info({ toPhone }, "📨 Sent proactive message to other user");
+                    const { sid, finalStatus, errorCode } = await sendWhatsAppAndVerify({ to, body });
+                    fastify.log.info({ toPhone, sid, finalStatus, errorCode }, "📨 Sent proactive message to other user");
+                    console.log(`[SERVER] sendToOther FINAL toPhone=${toPhone} sid=${sid} status=${finalStatus} errorCode=${errorCode ?? "none"}`);
+
+                    if (finalStatus !== "delivered" && finalStatus !== "sent") {
+                        console.warn(`[SERVER] ⚠️ Message did NOT deliver. Status=${finalStatus}. Likely cause: 24h Twilio Sandbox window expired. Ask the creator to send any message to the sandbox first, then retry.`);
+                    }
                 } catch (e) {
                     fastify.log.error({ e, toPhone }, "❌ Proactive message failed");
+                    console.error(`[SERVER] sendToOther FAILURE toPhone=${toPhone}`, e);
                 }
             },
         });

@@ -33,10 +33,42 @@ export async function handleMessage(args: {
     const { phone, body, sendToOther } = args;
     const text = body.trim();
 
+    // ─── GLOBAL COMMANDS — work in ANY state ─────────────────────────
+
     if (/^(cancelar|cancel|salir|atr[aá]s|reset)$/i.test(text)) {
         resetSession(phone);
         return [MESSAGES.cancelled];
     }
+
+    // "/pendientes" or "pendientes" — lists pending approvals for the creator
+    if (/^\/?pendientes?$/i.test(text)) {
+        const pendings = findPendingApprovalsForCreator(phone);
+        if (pendings.length === 0) {
+            return ["🐄 No tienes solicitudes pendientes en este momento."];
+        }
+        const lines = pendings.map((p, i) =>
+            `${i + 1}. *${p.candidateName}* (${p.candidateData.occupation}) — Score: ${p.score}/100, posición: ${p.suggestedPosition}`,
+        );
+        return [
+            `🐄 *Tienes ${pendings.length} solicitud(es) pendiente(s):*\n\n${lines.join("\n")}\n\nResponde *sí* para aprobar la más antigua, o *no* para rechazarla.`,
+        ];
+    }
+
+    // "/estado" or "estado" — shows current session state (debug helper)
+    if (/^\/?estado$/i.test(text)) {
+        const s = getOrCreateSession(phone);
+        const stateDesc =
+            s.state.kind === "idle"
+                ? "Sin operación en curso. Puedes escribir _hacer vaquita_, _invitar_, o _unirme_."
+                : s.state.kind === "creating_vaquita"
+                  ? `Creando una vaquita (paso: ${s.state.step}). Escribe _cancelar_ para abortar.`
+                  : s.state.kind === "joining_vaquita"
+                    ? `Uniéndote a una vaquita (paso: ${s.state.step}). Escribe _cancelar_ para abortar.`
+                    : "Estado desconocido.";
+        return [`🐄 *Tu estado actual:*\n\n${stateDesc}`];
+    }
+
+    // ─── MULTI-STEP FLOWS ────────────────────────────────────────────
 
     const session = getOrCreateSession(phone);
 
@@ -44,6 +76,12 @@ export async function handleMessage(args: {
         return handleCreateFlow(phone, text, session.state.step, session.state.partial);
     }
     if (session.state.kind === "joining_vaquita") {
+        // Candidate is waiting for creator approval — explain and offer an escape hatch.
+        if (session.state.step === "scoring") {
+            return [
+                "⏳ Tu solicitud está con el organizador esperando aprobación.\n\nEscribe *cancelar* para retirar tu solicitud, o *estado* para ver más detalles.",
+            ];
+        }
         return handleJoinFlow({
             phone,
             text,
@@ -195,6 +233,7 @@ async function performCreation(phone: string, input: CreateVaquitaInput): Promis
 // ─── Invite flow ─────────────────────────────────────────────────────
 
 async function startInviteFlow(creatorPhone: string): Promise<string[]> {
+    console.log(`[INVITE] startInviteFlow called by creatorPhone=${creatorPhone}`);
     try {
         const list = await publicClient.readContract({
             address: deployments.contracts.VaquitaFactory.address as Address,
@@ -203,14 +242,15 @@ async function startInviteFlow(creatorPhone: string): Promise<string[]> {
             args: [SIGNER_ADDRESS as Address],
         });
         const arr = [...list] as Address[];
+        console.log(`[INVITE] found ${arr.length} vaquitas owned by deployer signer`);
         if (arr.length === 0) return [MESSAGES.noVaquitaToInvite];
 
-        // V1: always invite to the most recently created vaquita (last in array).
         const vaquitaAddress = arr[arr.length - 1]!;
         const invitation = createInvitation({ vaquitaAddress, creatorPhone });
+        console.log(`[INVITE] created code=${invitation.code} vaquita=${invitation.vaquitaAddress} creator=${invitation.creatorPhone}`);
         return [MESSAGES.inviteCreated(invitation.code, vaquitaAddress)];
     } catch (err) {
-        console.error("Failed to create invitation:", err);
+        console.error("[INVITE] failed:", err);
         return [MESSAGES.error];
     }
 }
@@ -326,19 +366,26 @@ async function scoreAndNotify(args: {
 }): Promise<void> {
     const { candidatePhone, vaquitaAddress, creatorPhone, data, sendToOther } = args;
 
-    // Derive a deterministic pseudo-address from the candidate's phone (V1 limitation).
-    // This is used only as an internal key for the AI scorer — never touches a real tx.
+    console.log(`[SCORE] start candidate=${candidatePhone} creator=${creatorPhone} vaquita=${vaquitaAddress}`);
+
     const pseudoAddress = `0x${Buffer.from(candidatePhone).toString("hex").padStart(40, "0").slice(0, 40)}` as Address;
 
-    const score = await scoreMember({
-        address: pseudoAddress,
-        selfReported: {
-            name: data.name,
-            occupation: data.occupation,
-            monthlyIncomeMXN: data.monthlyIncomeMXN,
-            timeInCommunityMonths: data.timeInCommunityMonths,
-        },
-    });
+    let score;
+    try {
+        score = await scoreMember({
+            address: pseudoAddress,
+            selfReported: {
+                name: data.name,
+                occupation: data.occupation,
+                monthlyIncomeMXN: data.monthlyIncomeMXN,
+                timeInCommunityMonths: data.timeInCommunityMonths,
+            },
+        });
+        console.log(`[SCORE] Claude returned score=${score.score} position=${score.suggestedPayoutPosition}`);
+    } catch (err) {
+        console.error(`[SCORE] Claude scoring FAILED`, err);
+        throw err;
+    }
 
     addPendingApproval({
         candidatePhone,
@@ -352,20 +399,35 @@ async function scoreAndNotify(args: {
         suggestedPosition: score.suggestedPayoutPosition,
         createdAt: Date.now(),
     });
+    console.log(`[SCORE] pending approval stored for creator=${creatorPhone}`);
 
-    if (sendToOther) {
-        await sendToOther({
-            toPhone: creatorPhone,
-            body: MESSAGES.approvalPrompt({
-                candidateName: data.name,
-                candidateOccupation: data.occupation,
-                score: score.score,
-                rationale: score.rationale,
-                redFlags: score.redFlags,
-                suggestedPosition: score.suggestedPayoutPosition,
-                vaquitaAddress,
-            }),
-        });
+    if (!sendToOther) {
+        console.error(`[SCORE] sendToOther is UNDEFINED — cannot notify creator`);
+        return;
+    }
+
+    if (!creatorPhone || creatorPhone.length < 5) {
+        console.error(`[SCORE] creatorPhone is INVALID: "${creatorPhone}"`);
+        return;
+    }
+
+    const body = MESSAGES.approvalPrompt({
+        candidateName: data.name,
+        candidateOccupation: data.occupation,
+        score: score.score,
+        rationale: score.rationale,
+        redFlags: score.redFlags,
+        suggestedPosition: score.suggestedPayoutPosition,
+        vaquitaAddress,
+    });
+
+    console.log(`[SCORE] about to send approval prompt to creator=${creatorPhone} body.length=${body.length}`);
+
+    try {
+        await sendToOther({ toPhone: creatorPhone, body });
+        console.log(`[SCORE] sendToOther completed for creator=${creatorPhone}`);
+    } catch (err) {
+        console.error(`[SCORE] sendToOther threw for creator=${creatorPhone}`, err);
     }
 }
 
@@ -373,14 +435,21 @@ async function scoreAndNotify(args: {
 
 async function handleConfirmIntent(phone: string, sendToOther?: OutboundSender): Promise<string[]> {
     const pendings = findPendingApprovalsForCreator(phone);
-    if (pendings.length === 0) return [MESSAGES.greeting];
+    console.log(`[APPROVE] confirm intent received from ${phone}, ${pendings.length} pending approvals`);
+    if (pendings.length === 0) {
+        return ["🐄 No tienes solicitudes pendientes para aprobar.\n\n¿En qué más te ayudo?"];
+    }
     const oldest = pendings.sort((a, b) => a.createdAt - b.createdAt)[0]!;
+    console.log(`[APPROVE] approving oldest pending: ${oldest.candidateName} (${oldest.candidatePhone})`);
     return executeApproval({ approval: oldest, approve: true, sendToOther });
 }
 
 async function handleDenyIntent(phone: string, sendToOther?: OutboundSender): Promise<string[]> {
     const pendings = findPendingApprovalsForCreator(phone);
-    if (pendings.length === 0) return [MESSAGES.greeting];
+    console.log(`[APPROVE] deny intent received from ${phone}, ${pendings.length} pending approvals`);
+    if (pendings.length === 0) {
+        return ["🐄 No tienes solicitudes pendientes para rechazar."];
+    }
     const oldest = pendings.sort((a, b) => a.createdAt - b.createdAt)[0]!;
     return executeApproval({ approval: oldest, approve: false, sendToOther });
 }
@@ -408,15 +477,50 @@ async function executeApproval(args: {
         await writeService.joinVaquita(approval.vaquitaAddress);
 
         resetSession(approval.candidatePhone);
+
+        // Notify the candidate with text + optional voice.
         if (sendToOther) {
             await sendToOther({
                 toPhone: approval.candidatePhone,
                 body: MESSAGES.approved(approval.vaquitaAddress),
             });
+
+            // Try to add a voice welcome message. Fail silently if voice isn't configured.
+            try {
+                const { isVoiceConfigured } = await import("../config/env.js");
+                if (isVoiceConfigured()) {
+                    const { synthesizeSpanish, audioPublicUrl } = await import("../ai/voice.js");
+                    const { welcomeApprovedScript } = await import("../ai/voice-scripts.js");
+                    const { sendWhatsAppMedia } = await import("./twilio-client.js");
+
+                    const contributionHuman = readService.formatTokenAmount(state.config.contributionAmount);
+                    const cycleDays = Math.round(Number(state.config.cycleDuration) / 86400);
+                    const script = welcomeApprovedScript({
+                        candidateName: approval.candidateName,
+                        contributionAmount: contributionHuman,
+                        totalMembers: state.config.totalMembers,
+                        cycleDays,
+                    });
+
+                    const { filename } = await synthesizeSpanish(script);
+                    const url = audioPublicUrl(filename);
+
+                    const to = approval.candidatePhone.startsWith("whatsapp:")
+                        ? approval.candidatePhone
+                        : `whatsapp:${approval.candidatePhone}`;
+                    await sendWhatsAppMedia({ to, body: "🎙️ Mensaje de bienvenida personalizado", mediaUrl: url });
+                    console.log(`[APPROVE] voice welcome sent to ${approval.candidatePhone}`);
+                }
+            } catch (voiceErr) {
+                console.error(`[APPROVE] voice welcome failed (non-fatal):`, voiceErr);
+            }
         }
+
         return [MESSAGES.approvalConfirmedByCreator(approval.candidateName)];
     } catch (err) {
-        console.error("Failed to execute onchain join:", err);
+        console.error("[APPROVE] Failed to execute onchain join:", err);
+        // Always reset candidate session so they don't stay stuck in "scoring" state.
+        resetSession(approval.candidatePhone);
         return [MESSAGES.onchainJoinFailed];
     }
 }

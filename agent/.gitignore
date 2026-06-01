@@ -3,3 +3,7 @@ dist/
 *.log
 .env
 coverage/
+
+# Generated audio files — cached locally, not committed
+audio/*.mp3
+!audio/.gitkeep

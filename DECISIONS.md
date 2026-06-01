@@ -97,3 +97,11 @@
 **Decision:** Derive a deterministic pseudo-address from the candidate's phone number (hex-encoded, padded to 40 chars). This is used purely as an internal key for the AI service.
 **Reasoning:** Lets the existing risk-scorer API stay unchanged. The pseudo-address never touches a real on-chain transaction; it only flows through the Claude prompt.
 **Consequences:** Onchain history-based scoring is impossible in V1. The scorer relies entirely on self-reported data. V2 = real wallets give us real onchain history.
+
+## ADR-13: Local file storage + Fastify static for voice files
+**Date:** 2026-06-01
+**Status:** Accepted
+**Context:** Twilio needs a public URL to deliver MP3 attachments via WhatsApp. We need somewhere to put them.
+**Decision:** Generate locally to `agent/audio/`, serve via Fastify static at `/audio/*`, public access via ngrok URL.
+**Reasoning:** Zero infra overhead. Files are deterministically named (sha1 of voice+text), so cache is automatic. When we deploy to Railway, the same setup works with the Railway public URL replacing ngrok.
+**Consequences:** Audio files are gitignored. On a fresh clone, files regenerate on first use. For production scale, we'd swap to S3/Cloudflare R2; not needed for hackathon.

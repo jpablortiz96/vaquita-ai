@@ -383,7 +383,37 @@ Creator                                Candidate
 - Every onchain action is real and verifiable on Arbiscan.
 - The risk scorer is genuinely using Claude Sonnet 4.5 — not a mock.
 
-## 18. Operating Reminders for Claude Code
+## 18. Voice Notifications (ElevenLabs)
+
+### Architecture
+```
+User approves a candidate
+   │
+   ▼
+executeApproval()
+   ├─→ onchain join() via deployer signer
+   ├─→ resetSession(candidate)
+   ├─→ sendToOther(text "🎉 ¡Te aprobaron!")
+   │
+   ▼
+   if (isVoiceConfigured())
+   ├─→ synthesizeSpanish(welcomeScript) ── caches in agent/audio/
+   ├─→ audioPublicUrl(filename) ── public via ngrok
+   └─→ sendWhatsAppMedia(audio.mp3) ── Twilio downloads + delivers
+```
+
+### Caching strategy
+Files are named `audio_<sha1(voiceId|text)>.mp3`. Identical (voice, text) pairs reuse the same MP3, so re-approvals don't burn ElevenLabs characters.
+
+### Fallback
+If `ELEVENLABS_API_KEY` or `ELEVENLABS_VOICE_ID_ES` are missing, the bot still sends the text-only message and logs the skip. Voice ENHANCES the experience; never blocks it.
+
+### Free tier limits
+- 10,000 characters/month on free ElevenLabs
+- Average approval message: ~250 chars → ~40 approvals/month before refill
+- Production plan ($5/mo): 30,000 chars
+
+## 19. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

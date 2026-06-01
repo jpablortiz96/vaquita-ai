@@ -49,3 +49,9 @@
 **Prompt:** Build the full join workflow: invitation codes, 4-question join interview, AI risk scoring via Claude Sonnet 4.5, proactive approval prompt to creator, sí/no approval flow, onchain join() executed by deployer on behalf of candidate, cross-user proactive messaging.
 
 **Outcome:** Bot accepts "invitar" → generates 8-char code; recipient sends "quiero unirme con código X" → 4-question interview → scoreMember() via Claude → creator receives proactive WhatsApp with score/rationale/red-flags → "sí" triggers approveToken() + joinVaquita() onchain → both parties notified. 15/15 non-AI tests pass (6 new invitations store tests). ADR-12 documents phone-based candidate identity tradeoff. OutboundSender abstraction keeps engine.ts free of Twilio coupling.
+
+## Step 6 — ElevenLabs voice notifications in Spanish (Date: 2026-06-01)
+
+**Prompt:** Integrate ElevenLabs TTS for Spanish voice messages. Send personalized welcome audio when candidate is approved. Cache by sha1(voice+text) hash, serve via Fastify static at /audio/*, attach via Twilio mediaUrl. Graceful fallback to text-only if voice not configured.
+
+**Outcome:** Voice synthesis service (agent/src/ai/voice.ts) with content-addressed cache. Approval flow sends text + voice audio to candidate. POST /voice/synthesize endpoint for testing. @fastify/static serves audio files publicly. Verified: 56KB MP3 generated and served at http://localhost:3001/audio/audio_7ea8c100ab8d5427.mp3. 20/20 non-AI tests pass. ADR-13 documents local storage architecture.

@@ -26,6 +26,10 @@ const envSchema = z.object({
     TWILIO_AUTH_TOKEN: z.string().min(20, "TWILIO_AUTH_TOKEN required for bot").optional(),
     TWILIO_WHATSAPP_FROM: z.string().startsWith("whatsapp:+", "Format: whatsapp:+1234567890").optional(),
 
+    // ElevenLabs (voice notifications) — optional
+    ELEVENLABS_API_KEY: z.string().min(10, "ELEVENLABS_API_KEY required for voice").optional(),
+    ELEVENLABS_VOICE_ID_ES: z.string().min(10, "ELEVENLABS_VOICE_ID_ES required for voice").optional(),
+
     // HTTP server
     PORT: z.coerce.number().int().positive().default(3001),
     HOST: z.string().default("0.0.0.0"),
@@ -52,4 +56,9 @@ export type Env = typeof env;
 /** True when all Twilio bot variables are configured. */
 export function isBotConfigured(): boolean {
     return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM);
+}
+
+/** True when ElevenLabs voice is configured. */
+export function isVoiceConfigured(): boolean {
+    return Boolean(env.ELEVENLABS_API_KEY && env.ELEVENLABS_VOICE_ID_ES);
 }
