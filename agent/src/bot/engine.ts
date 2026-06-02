@@ -140,6 +140,15 @@ export async function handleMessage(args: {
         case "when_my_turn":
             return whenMyTurn(phone);
 
+        case "bitso_balance":
+            return bitsoBalance();
+
+        case "bitso_quote":
+            return bitsoQuote();
+
+        case "bitso_info":
+            return bitsoInfo();
+
         case "confirm":
             return handleConfirmIntent(phone, sendToOther);
 
@@ -704,4 +713,70 @@ async function whenMyTurn(phone: string): Promise<string[]> {
         console.error("[WHEN_MY_TURN] failed:", err);
         return [MESSAGES.error];
     }
+}
+
+// ─── Bitso commands ──────────────────────────────────────────────────
+
+async function bitsoBalance(): Promise<string[]> {
+    const { isBitsoConfigured } = await import("../config/env.js");
+    if (!isBitsoConfigured()) {
+        return ["⚠️ La integración con Bitso no está configurada. Configura BITSO_API_KEY y BITSO_API_SECRET en .env."];
+    }
+    try {
+        const { getBalances } = await import("../bitso/account.js");
+        const balances = await getBalances();
+        const meaningful = balances.filter((b) => parseFloat(b.total) > 0);
+        if (meaningful.length === 0) {
+            return ["💰 Tu cuenta Bitso sandbox no tiene saldo en ninguna moneda. (Saldos cero — es esperado en una cuenta nueva.)"];
+        }
+        const lines = meaningful
+            .map((b) => `• *${b.currency.toUpperCase()}*: ${parseFloat(b.total).toFixed(4)} (disponible: ${parseFloat(b.available).toFixed(4)})`)
+            .join("\n");
+        return [`💰 *Saldo en Bitso Sandbox:*\n\n${lines}`];
+    } catch (err) {
+        console.error("[BITSO] balance failed:", err);
+        return [`⚠️ Error al consultar Bitso: ${(err as Error).message}`];
+    }
+}
+
+async function bitsoQuote(): Promise<string[]> {
+    const { isBitsoConfigured } = await import("../config/env.js");
+    if (!isBitsoConfigured()) {
+        return ["⚠️ La integración con Bitso no está configurada."];
+    }
+    try {
+        const { getTicker, getAvailableBooks } = await import("../bitso/market.js");
+        try {
+            const ticker = await getTicker("mxnb_mxn");
+            return [
+                `📊 *Cotización MXNB / MXN (Bitso Sandbox):*\n\n• Último: $${parseFloat(ticker.last).toFixed(4)} MXN\n• Ask: $${parseFloat(ticker.ask).toFixed(4)}\n• Bid: $${parseFloat(ticker.bid).toFixed(4)}\n• Volumen 24h: ${parseFloat(ticker.volume).toFixed(2)}\n• Cambio 24h: ${ticker.change_24}%\n\n📍 Fuente: Bitso Business API`,
+            ];
+        } catch {
+            const books = await getAvailableBooks();
+            const list = books.slice(0, 10).map((b) => `• ${b.book}`).join("\n");
+            return [`📊 *Books disponibles en Bitso Sandbox:*\n\n${list}\n\n(MXNB/MXN puede no estar listado en sandbox.)`];
+        }
+    } catch (err) {
+        console.error("[BITSO] quote failed:", err);
+        return [`⚠️ Error al consultar Bitso: ${(err as Error).message}`];
+    }
+}
+
+async function bitsoInfo(): Promise<string[]> {
+    return [
+        `🇲🇽 *Integración con Bitso Business*
+
+VaquitaAI usa la API de Bitso Business para:
+- Cotización en vivo MXNB ↔ MXN
+- Consulta de saldo onchain de la vaquita
+- On/off-ramp vía SPEI (próximamente)
+
+📚 Comandos disponibles:
+- _saldo bitso_ → ver saldo de la cuenta Bitso
+- _cotizar_ → precio actual MXNB/MXN
+- _bitso info_ → este mensaje
+
+🔗 Sandbox: api-sandbox.bitso.com/api/v3
+📖 Docs: docs.bitso.com/bitso-api`,
+    ];
 }

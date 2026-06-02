@@ -413,7 +413,41 @@ If `ELEVENLABS_API_KEY` or `ELEVENLABS_VOICE_ID_ES` are missing, the bot still s
 - Average approval message: ~250 chars → ~40 approvals/month before refill
 - Production plan ($5/mo): 30,000 chars
 
-## 19. Operating Reminders for Claude Code
+## 19. Bitso Business Integration
+
+VaquitaAI integrates the Bitso Business Trading API for live MXN/MXNB market data and account management.
+
+```
+User WhatsApp                  Bot (Fastify)                Bitso Sandbox API
+   │                                │                            │
+   │ "saldo bitso"                  │                            │
+   ├────────────────────────────────▶                            │
+   │                                │ HMAC-signed GET /balance   │
+   │                                ├────────────────────────────▶
+   │                                │                            │
+   │                                ◀─── { balances: [...] } ────┤
+   │                                │                            │
+   │ "💰 Saldo: 100 MXNB"           │                            │
+   ◀────────────────────────────────┤                            │
+```
+
+### Signature implementation
+HMAC SHA256 per Bitso docs. Code: `agent/src/bitso/client.ts`. Tested in `agent/test/bitso/client.test.ts` without making real API calls.
+
+### Endpoints integrated
+- Public: `/ticker`, `/order_book`, `/available_books`
+- Private (signed): `/account_status`, `/balance`, `/funding_destinations`
+
+### Bot commands
+- `saldo bitso` → live balance check
+- `cotizar` → MXNB/MXN ticker
+- `bitso info` → explainer
+- HTTP: `GET /bitso/health` for sponsors
+
+### V1 → V2 path
+V1: read-only sandbox calls for the demo. V2: SPEI on/off-ramp with real MXNB on Arbitrum One mainnet.
+
+## 20. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

@@ -59,6 +59,9 @@ export type Intent =
     | { kind: "join_vaquita"; code?: string }
     | { kind: "start_vaquita" }
     | { kind: "when_my_turn" }
+    | { kind: "bitso_balance" }
+    | { kind: "bitso_quote" }
+    | { kind: "bitso_info" }
     | { kind: "list_my_vaquitas" }
     | { kind: "view_vaquita"; address?: Address }
     | { kind: "help" }

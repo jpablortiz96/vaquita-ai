@@ -30,6 +30,11 @@ const envSchema = z.object({
     ELEVENLABS_API_KEY: z.string().min(10, "ELEVENLABS_API_KEY required for voice").optional(),
     ELEVENLABS_VOICE_ID_ES: z.string().min(10, "ELEVENLABS_VOICE_ID_ES required for voice").optional(),
 
+    // Bitso Business API — optional
+    BITSO_API_KEY: z.string().min(10, "BITSO_API_KEY required for Bitso integration").optional(),
+    BITSO_API_SECRET: z.string().min(10, "BITSO_API_SECRET required for Bitso integration").optional(),
+    BITSO_API_BASE_URL: z.string().url().default("https://api-sandbox.bitso.com/api/v3"),
+
     // HTTP server
     PORT: z.coerce.number().int().positive().default(3001),
     HOST: z.string().default("0.0.0.0"),
@@ -61,4 +66,9 @@ export function isBotConfigured(): boolean {
 /** True when ElevenLabs voice is configured. */
 export function isVoiceConfigured(): boolean {
     return Boolean(env.ELEVENLABS_API_KEY && env.ELEVENLABS_VOICE_ID_ES);
+}
+
+/** True when Bitso Business API is configured. */
+export function isBitsoConfigured(): boolean {
+    return Boolean(env.BITSO_API_KEY && env.BITSO_API_SECRET);
 }

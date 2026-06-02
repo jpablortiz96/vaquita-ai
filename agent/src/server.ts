@@ -51,6 +51,28 @@ fastify.post<{ Body: { text?: string } }>("/voice/synthesize", async (request, r
     }
 });
 
+fastify.get("/bitso/health", async () => {
+    try {
+        const { isBitsoConfigured } = await import("./config/env.js");
+        if (!isBitsoConfigured()) {
+            return { configured: false, status: "not_configured" };
+        }
+        const { getAccountStatus } = await import("./bitso/account.js");
+        const status = await getAccountStatus();
+        return {
+            configured: true,
+            status: "ok",
+            account: {
+                client_id: status.client_id,
+                daily_limit: status.daily_limit,
+                daily_remaining: status.daily_remaining,
+            },
+        };
+    } catch (err) {
+        return { configured: true, status: "error", error: (err as Error).message };
+    }
+});
+
 fastify.get("/health", async () => {
     return {
         status: "ok",

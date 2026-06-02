@@ -113,3 +113,11 @@
 **Decision:** Approach B. The bot computes the order with Claude Sonnet 4.5, shows it to the creator with rationale, requires "sí" to execute setPayoutOrder + start onchain.
 **Reasoning:** Human-in-the-loop is the right trust model for the hackathon: the AI suggests, the human decides. Pitch-friendly. Zero risk of auto-execution bugs.
 **Consequences:** One extra confirmation step. Acceptable — the creator is already engaged enough to type "arrancar".
+
+## ADR-15: Bitso integration as a separate module
+**Date:** 2026-06-02
+**Status:** Accepted
+**Context:** Bitso is the lead sponsor and the financial backbone of VaquitaAI. Integration could be tightly coupled into the bot engine, but that creates risk if Bitso changes their API or we want to swap providers.
+**Decision:** Isolate Bitso in `agent/src/bitso/` with its own client, types, and submodules (market, account, funding). Bot engine imports the high-level functions only.
+**Reasoning:** Adapter pattern. The bot calls `getBalances()`, not `bitsoClient.privateGet("/balance")`. Switching providers (or mocking for tests) is a one-file change.
+**Consequences:** Slight indirection. Worth it for separation of concerns and testability.

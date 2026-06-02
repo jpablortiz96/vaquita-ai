@@ -61,3 +61,9 @@
 **Prompt:** Build the "arrancar" flow: AI computes optimal payout order from stored member scores, presents to creator with rationale, executes setPayoutOrder + start onchain on confirmation. Notify each member with text + voice about their position and estimated receive date.
 
 **Outcome:** payout-orchestrator.ts — buildPayoutPlan (Claude suggestPayoutOrder) + executePayoutPlan (setPayoutOrder + start onchain). New intents: start_vaquita, when_my_turn. New state: confirming_payout. memberScores stored on approval, consumed on arrancar. Each member receives personalized text + voice notification with position and estimated date. 20/20 non-AI tests pass. ADR-14 documents human-in-the-loop confirmation model.
+
+## Step 8 — Bitso Business API integration (Date: 2026-06-02)
+
+**Prompt:** Build full Bitso Business Trading API integration: HMAC SHA256 signed client, market endpoints (ticker, order_book, available_books), private endpoints (balance, account_status, funding_destinations), three WhatsApp bot commands (saldo bitso, cotizar, bitso info), /bitso/health endpoint for sponsor demos, comprehensive sponsor documentation.
+
+**Outcome:** Bitso adapter module in agent/src/bitso/ (client, types, market, account, funding). Bot answers balance and quote questions live from Bitso sandbox. GET /bitso/health confirms configured:true with real API call. 24/24 non-AI tests pass (4 new Bitso signature tests). ADR-15 documents adapter pattern. Sponsor doc updated with talking points for the pitch.

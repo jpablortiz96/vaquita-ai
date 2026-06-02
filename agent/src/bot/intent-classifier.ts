@@ -13,6 +13,9 @@ Possible intents:
 - "join_vaquita" — alguien quiere unirse a una vaquita ajena. "quiero unirme", "me uno", "código abc123", "unirme con código xyz". Si menciona un código, extraerlo en "code".
 - "list_my_vaquitas" — quieren ver sus vaquitas existentes
 - "view_vaquita" — quieren detalles de una vaquita específica
+- "bitso_balance" — consultar saldo en Bitso. "saldo bitso", "cuánto tengo en bitso", "balance"
+- "bitso_quote" — ver precio MXNB. "cotizar", "precio mxnb", "cuánto vale"
+- "bitso_info" — info sobre integración con Bitso. "bitso info", "qué es bitso"
 - "help" — piden ayuda, "cómo funciona"
 - "cancel" — quieren cancelar, "cancelar", "salir", "atrás"
 - "confirm" — sí, "dale", "ok", "está bien"
@@ -40,6 +43,11 @@ Examples (input → output):
 - "arrancar" → {"kind":"start_vaquita"}
 - "ya estamos todos, arranca la vaquita" → {"kind":"start_vaquita"}
 - "cuando me toca" → {"kind":"when_my_turn"}
+- "saldo bitso" → {"kind":"bitso_balance"}
+- "cuánto tengo" → {"kind":"bitso_balance"}
+- "cotizar mxnb" → {"kind":"bitso_quote"}
+- "precio" → {"kind":"bitso_quote"}
+- "bitso info" → {"kind":"bitso_info"}
 - "muéstrame mis vaquitas" → {"kind":"list_my_vaquitas"}
 - "ayuda" → {"kind":"help"}
 - "cancelar" → {"kind":"cancel"}
@@ -59,6 +67,9 @@ const intentSchema = z.object({
         "when_my_turn",
         "list_my_vaquitas",
         "view_vaquita",
+        "bitso_balance",
+        "bitso_quote",
+        "bitso_info",
         "help",
         "cancel",
         "confirm",
