@@ -198,6 +198,27 @@ ${args.rationale}${flagsLine}
 
     error: `⚠️ Algo salió mal de mi lado. Intenta otra vez en un momento.`,
 
+    pendingDetail: (p: { candidateName: string; candidateOccupation: string; score: number; rationale: string; suggestedPosition: string; vaquitaAddress: string }) => {
+        const positionLabel: Record<string, string> = {
+            early: "temprana (recibe pronto)",
+            middle: "media",
+            late: "tardía (recibe después)",
+        };
+        return `🐄 *Solicitud pendiente*
+
+👤 *${p.candidateName}* (${p.candidateOccupation})
+
+📊 *Score:* ${p.score}/100
+💡 *Posición recomendada:* ${positionLabel[p.suggestedPosition] ?? p.suggestedPosition}
+
+📝 *Análisis de la IA:*
+${p.rationale}
+
+📍 Vaquita: \`${p.vaquitaAddress.slice(0, 10)}...\`
+
+Responde *sí* para aprobar, o *no* para rechazar.`;
+    },
+
     // ─── Payout / arrancar flow ───
     arrancarNoVaquita: `🤔 No tengo registrado que tengas una vaquita lista para arrancar. Crea una primero con _hacer vaquita_.`,
 

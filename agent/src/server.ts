@@ -143,7 +143,16 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
                     console.log(`[SERVER] sendToOther FINAL toPhone=${toPhone} sid=${sid} status=${finalStatus} errorCode=${errorCode ?? "none"}`);
 
                     if (finalStatus !== "delivered" && finalStatus !== "sent") {
-                        console.warn(`[SERVER] ⚠️ Message did NOT deliver. Status=${finalStatus}. Likely cause: 24h Twilio Sandbox window expired. Ask the creator to send any message to the sandbox first, then retry.`);
+                        console.warn(`[SERVER] ⚠️ Proactive message did NOT deliver to ${toPhone}. Status=${finalStatus} errorCode=${errorCode}.`);
+                        console.warn(`[SERVER] 💡 Twilio Sandbox limitations: sessions expire after 3 days, and the 24h messaging window applies. Recipients can use the 'pendientes' command to retrieve pending approvals.`);
+
+                        if (errorCode === "63015") {
+                            console.warn(`[SERVER] 🚨 Error 63015: Recipient phone ${toPhone} has not joined the sandbox OR session expired. Ask them to send 'join <sandbox-keyword>' to refresh.`);
+                        } else if (errorCode === "63016") {
+                            console.warn(`[SERVER] 🚨 Error 63016: 24h messaging window has closed for ${toPhone}. They need to send any inbound message to reopen the window.`);
+                        } else if (errorCode === "63038") {
+                            console.warn(`[SERVER] 🚨 Error 63038: Daily sandbox message limit (50/day) exceeded. Resets in 24h.`);
+                        }
                     }
                 } catch (e) {
                     fastify.log.error({ e, toPhone }, "❌ Proactive message failed");

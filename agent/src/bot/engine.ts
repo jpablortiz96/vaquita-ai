@@ -48,11 +48,28 @@ export async function handleMessage(args: {
         if (pendings.length === 0) {
             return ["🐄 No tienes solicitudes pendientes en este momento."];
         }
-        const lines = pendings.map((p, i) =>
-            `${i + 1}. *${p.candidateName}* (${p.candidateData.occupation}) — Score: ${p.score}/100, posición: ${p.suggestedPosition}`,
+        // Show the FULL detail of the oldest pending — that's the one "sí" will approve.
+        const oldest = pendings.sort((a, b) => a.createdAt - b.createdAt)[0]!;
+        const detailMsg = MESSAGES.pendingDetail({
+            candidateName: oldest.candidateName,
+            candidateOccupation: oldest.candidateData.occupation,
+            score: oldest.score,
+            rationale: oldest.rationale,
+            suggestedPosition: oldest.suggestedPosition,
+            vaquitaAddress: oldest.vaquitaAddress,
+        });
+
+        if (pendings.length === 1) {
+            return [detailMsg];
+        }
+
+        // If multiple pending, show detail of oldest + summary of the rest
+        const summaryLines = pendings.slice(1).map((p, i) =>
+            `${i + 2}. *${p.candidateName}* — Score: ${p.score}/100`,
         );
         return [
-            `🐄 *Tienes ${pendings.length} solicitud(es) pendiente(s):*\n\n${lines.join("\n")}\n\nResponde *sí* para aprobar la más antigua, o *no* para rechazarla.`,
+            detailMsg,
+            `\n📋 *Otras pendientes (verás éstas después):*\n${summaryLines.join("\n")}`,
         ];
     }
 
@@ -453,11 +470,27 @@ async function scoreAndNotify(args: {
 
     console.log(`[SCORE] about to send approval prompt to creator=${creatorPhone} body.length=${body.length}`);
 
+    // Try to notify the creator. If it fails (sandbox quirks), the creator can
+    // still see the pending approval via "pendientes" command.
     try {
-        await sendToOther({ toPhone: creatorPhone, body });
+        await sendToOther({
+            toPhone: creatorPhone,
+            body,
+        });
         console.log(`[SCORE] sendToOther completed for creator=${creatorPhone}`);
     } catch (err) {
         console.error(`[SCORE] sendToOther threw for creator=${creatorPhone}`, err);
+    }
+
+    // Always send a confirmation to the candidate so they know what to expect.
+    // This is independent of whether the creator notification succeeded.
+    try {
+        await sendToOther({
+            toPhone: candidatePhone,
+            body: `📤 *Tu solicitud fue enviada.*\n\nEl organizador recibirá una notificación. Si en un par de minutos no responde, *pídele que escriba "pendientes"* en este chat para ver tu solicitud directamente.\n\n🤖 Tu score de IA: *${score.score}/100*\n📊 Posición sugerida: *${score.suggestedPayoutPosition}*`,
+        });
+    } catch (candidateErr) {
+        console.error(`[SCORE] candidate notification failed:`, candidateErr);
     }
 }
 
