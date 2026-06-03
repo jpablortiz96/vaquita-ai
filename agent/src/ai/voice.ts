@@ -91,10 +91,21 @@ export async function synthesizeSpanish(text: string): Promise<{ path: string; f
     return { path: fullPath, filename };
 }
 
-/** Returns the public URL where the audio file can be downloaded by Twilio. */
-export function audioPublicUrl(filename: string): string {
-    const base = env.PUBLIC_URL ?? `http://localhost:${env.PORT}`;
-    return `${base}/audio/${filename}`;
+/**
+ * Returns the public URL where the audio file can be downloaded by Twilio.
+ * Returns null if PUBLIC_URL is not configured — caller should skip voice sending.
+ */
+export function audioPublicUrl(filename: string): string | null {
+    if (!env.PUBLIC_URL) {
+        console.warn("[VOICE] PUBLIC_URL is not set — voice messages cannot be delivered. Set PUBLIC_URL in .env (e.g. https://your-ngrok.ngrok-free.dev)");
+        return null;
+    }
+    // Twilio rejects URLs that contain localhost or 127.0.0.1, must be a real public URL.
+    if (env.PUBLIC_URL.includes("localhost") || env.PUBLIC_URL.includes("127.0.0.1")) {
+        console.warn(`[VOICE] PUBLIC_URL appears to be localhost: ${env.PUBLIC_URL} — Twilio cannot download from here.`);
+        return null;
+    }
+    return `${env.PUBLIC_URL}/audio/${filename}`;
 }
 
 export const AUDIO_DIRECTORY = AUDIO_DIR;

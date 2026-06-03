@@ -136,27 +136,43 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
             body: text,
             sendToOther: async ({ toPhone, body }) => {
                 console.log(`[SERVER] sendToOther invoked toPhone=${toPhone} body.length=${body.length}`);
-                try {
-                    const to = toPhone.startsWith("whatsapp:") ? toPhone : `whatsapp:${toPhone}`;
-                    const { sid, finalStatus, errorCode } = await sendWhatsAppAndVerify({ to, body });
-                    fastify.log.info({ toPhone, sid, finalStatus, errorCode }, "📨 Sent proactive message to other user");
-                    console.log(`[SERVER] sendToOther FINAL toPhone=${toPhone} sid=${sid} status=${finalStatus} errorCode=${errorCode ?? "none"}`);
+                const to = toPhone.startsWith("whatsapp:") ? toPhone : `whatsapp:${toPhone}`;
 
-                    if (finalStatus !== "delivered" && finalStatus !== "sent") {
-                        console.warn(`[SERVER] ⚠️ Proactive message did NOT deliver to ${toPhone}. Status=${finalStatus} errorCode=${errorCode}.`);
-                        console.warn(`[SERVER] 💡 Twilio Sandbox limitations: sessions expire after 3 days, and the 24h messaging window applies. Recipients can use the 'pendientes' command to retrieve pending approvals.`);
+                // Retry up to 2 times with backoff for transient DNS/network issues.
+                let lastErr: unknown = null;
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const { sid, finalStatus, errorCode } = await sendWhatsAppAndVerify({ to, body });
+                        fastify.log.info({ toPhone, sid, finalStatus, errorCode, attempt }, "📨 Sent proactive message to other user");
+                        console.log(`[SERVER] sendToOther FINAL toPhone=${toPhone} sid=${sid} status=${finalStatus} errorCode=${errorCode ?? "none"} attempt=${attempt}`);
 
-                        if (errorCode === "63015") {
-                            console.warn(`[SERVER] 🚨 Error 63015: Recipient phone ${toPhone} has not joined the sandbox OR session expired. Ask them to send 'join <sandbox-keyword>' to refresh.`);
-                        } else if (errorCode === "63016") {
-                            console.warn(`[SERVER] 🚨 Error 63016: 24h messaging window has closed for ${toPhone}. They need to send any inbound message to reopen the window.`);
-                        } else if (errorCode === "63038") {
-                            console.warn(`[SERVER] 🚨 Error 63038: Daily sandbox message limit (50/day) exceeded. Resets in 24h.`);
+                        if (finalStatus !== "delivered" && finalStatus !== "sent") {
+                            console.warn(`[SERVER] ⚠️ Proactive message did NOT deliver to ${toPhone}. Status=${finalStatus} errorCode=${errorCode}.`);
+                            if (errorCode === "63015") {
+                                console.warn(`[SERVER] 🚨 Error 63015: Recipient ${toPhone} sandbox session expired. Ask them to send 'join <keyword>' to refresh.`);
+                            } else if (errorCode === "63016") {
+                                console.warn(`[SERVER] 🚨 Error 63016: 24h messaging window closed for ${toPhone}.`);
+                            } else if (errorCode === "63038") {
+                                console.warn(`[SERVER] 🚨 Error 63038: Daily sandbox message limit (50/day) exceeded.`);
+                            }
                         }
+                        return; // success path
+                    } catch (e: unknown) {
+                        lastErr = e;
+                        const err = e as { code?: string; message?: string };
+                        console.error(`[SERVER] sendToOther attempt ${attempt} FAILED toPhone=${toPhone} code=${err.code ?? "?"} message=${err.message ?? "?"}`);
+
+                        // Retry only for transient errors (DNS, network), not for Twilio business logic errors.
+                        const isTransient = err.code === "ENOTFOUND" || err.code === "ETIMEDOUT" || err.code === "ECONNRESET" || err.code === "ECONNREFUSED";
+                        if (!isTransient || attempt === 2) break;
+
+                        console.log(`[SERVER] transient error detected, retrying in 2s...`);
+                        await new Promise((resolve) => setTimeout(resolve, 2000));
                     }
-                } catch (e) {
-                    fastify.log.error({ e, toPhone }, "❌ Proactive message failed");
-                    console.error(`[SERVER] sendToOther FAILURE toPhone=${toPhone}`, e);
+                }
+
+                if (lastErr) {
+                    fastify.log.error({ e: lastErr, toPhone }, "❌ Proactive message failed after retries");
                 }
             },
         });

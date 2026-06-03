@@ -581,11 +581,19 @@ async function executeApproval(args: {
                     const { filename } = await synthesizeSpanish(script);
                     const url = audioPublicUrl(filename);
 
-                    const to = approval.candidatePhone.startsWith("whatsapp:")
-                        ? approval.candidatePhone
-                        : `whatsapp:${approval.candidatePhone}`;
-                    await sendWhatsAppMedia({ to, body: "🎙️ Mensaje de bienvenida personalizado", mediaUrl: url });
-                    console.log(`[APPROVE] voice welcome sent to ${approval.candidatePhone}`);
+                    if (!url) {
+                        console.warn(`[APPROVE] skipping voice send — PUBLIC_URL not set or invalid`);
+                    } else {
+                        const to = approval.candidatePhone.startsWith("whatsapp:")
+                            ? approval.candidatePhone
+                            : `whatsapp:${approval.candidatePhone}`;
+                        await sendWhatsAppMedia({
+                            to,
+                            body: "🎙️ Mensaje de bienvenida personalizado",
+                            mediaUrl: url,
+                        });
+                        console.log(`[APPROVE] voice welcome sent to ${approval.candidatePhone}`);
+                    }
                 }
             } catch (voiceErr) {
                 console.error(`[APPROVE] voice welcome failed (non-fatal):`, voiceErr);
@@ -706,8 +714,12 @@ async function executeArrancar(args: {
                     const text = `Hola ${first}, la vaquita acaba de arrancar. Eres la posición ${m.position} de ${plan.memberDetails.length}. Te tocará recibir el ${m.cycleStartEstimate.toLocaleDateString("es-MX", { day: "numeric", month: "long" })}. Cada ${cycleDays} días vas a aportar ${contributionHuman} pesos digitales. ¡Mucha suerte!`;
                     const { filename } = await synthesizeSpanish(text);
                     const url = audioPublicUrl(filename);
-                    const to = m.phone.startsWith("whatsapp:") ? m.phone : `whatsapp:${m.phone}`;
-                    await sendWhatsAppMedia({ to, body: "🎙️ Tu posición en la vaquita", mediaUrl: url });
+                    if (!url) {
+                        console.warn(`[ARRANCAR] skipping voice send for ${m.phone} — PUBLIC_URL not set`);
+                    } else {
+                        const to = m.phone.startsWith("whatsapp:") ? m.phone : `whatsapp:${m.phone}`;
+                        await sendWhatsAppMedia({ to, body: "🎙️ Tu posición en la vaquita", mediaUrl: url });
+                    }
                 }
             } catch (vErr) {
                 console.error("[ARRANCAR] voice notify failed (non-fatal):", vErr);
