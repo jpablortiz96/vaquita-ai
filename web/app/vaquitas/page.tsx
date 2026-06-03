@@ -1,0 +1,125 @@
+"use client";
+
+import { Header } from "@/components/header";
+import { VaquitaCard } from "@/components/vaquita-card";
+import { usePrivy } from "@privy-io/react-auth";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import { CONTRACTS, factoryAbi, vaquitaAbi } from "@/lib/contracts";
+import type { Address } from "viem";
+
+export default function VaquitasPage() {
+    const { ready, authenticated, login, user } = usePrivy();
+    const { address } = useAccount();
+    const userAddress = (address ?? user?.wallet?.address) as Address | undefined;
+
+    const { data: vaquitaAddresses } = useReadContract({
+        address: CONTRACTS.VaquitaFactory,
+        abi: factoryAbi,
+        functionName: "getVaquitasByCreator",
+        args: userAddress ? [userAddress] : undefined,
+        query: { enabled: !!userAddress },
+    });
+
+    const list = (vaquitaAddresses as Address[] | undefined) ?? [];
+
+    const { data: statesData } = useReadContracts({
+        contracts: list.flatMap((addr) => [
+            { address: addr, abi: vaquitaAbi, functionName: "config" as const },
+            { address: addr, abi: vaquitaAbi, functionName: "status" as const },
+            { address: addr, abi: vaquitaAbi, functionName: "getMembers" as const },
+        ]),
+        query: { enabled: list.length > 0 },
+    });
+
+    if (!ready) return <Loading />;
+
+    if (!authenticated) {
+        return (
+            <>
+                <Header />
+                <Empty title="Conecta tu cuenta">
+                    <p style={{ color: "var(--text-dim)", marginBottom: 16 }}>
+                        Inicia sesión para ver y crear tus vaquitas.
+                    </p>
+                    <button className="btn-primary" onClick={() => login()}>
+                        Conectar
+                    </button>
+                </Empty>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <Header />
+            <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
+                <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>
+                    Tus <span className="gradient-text">vaquitas</span>
+                </h1>
+
+                {list.length === 0 ? (
+                    <Empty title="Aún no tienes vaquitas">
+                        <p style={{ color: "var(--text-dim)", marginBottom: 16 }}>
+                            Crea una desde WhatsApp escribiendo &ldquo;hacer una vaquita&rdquo;.
+                        </p>
+                        <a className="btn-primary" href="https://wa.me/14155238886?text=hacer+una+vaquita" target="_blank">
+                            Abrir WhatsApp
+                        </a>
+                    </Empty>
+                ) : (
+                    <div style={{ display: "grid", gap: 16 }}>
+                        {list.map((addr, i) => {
+                            const configIdx = i * 3;
+                            const statusIdx = i * 3 + 1;
+                            const membersIdx = i * 3 + 2;
+                            const config = statesData?.[configIdx]?.result as readonly [bigint, bigint, bigint, bigint, Address, Address] | undefined;
+                            const status = (statesData?.[statusIdx]?.result as number | undefined) ?? 0;
+                            const members = (statesData?.[membersIdx]?.result as readonly Address[] | undefined) ?? [];
+
+                            if (!config) {
+                                return <SkeletonCard key={addr} />;
+                            }
+                            return (
+                                <VaquitaCard
+                                    key={addr}
+                                    address={addr}
+                                    contributionAmount={config[0]}
+                                    totalMembers={Number(config[2])}
+                                    currentMembers={members.length}
+                                    status={status}
+                                    cycleDays={Number(config[3]) / 86400}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+            </main>
+        </>
+    );
+}
+
+function Loading() {
+    return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "var(--text-dim)" }}>
+            Cargando...
+        </div>
+    );
+}
+
+function Empty({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <main style={{ maxWidth: 600, margin: "60px auto 0", textAlign: "center", padding: 24 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🐄</div>
+            <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>{title}</h2>
+            {children}
+        </main>
+    );
+}
+
+function SkeletonCard() {
+    return (
+        <div className="glass" style={{ height: 140, opacity: 0.5 }}>
+            <div style={{ padding: 20, color: "var(--text-dim)" }}>Cargando vaquita...</div>
+        </div>
+    );
+}

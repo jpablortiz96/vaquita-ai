@@ -67,3 +67,9 @@
 **Prompt:** Build full Bitso Business Trading API integration: HMAC SHA256 signed client, market endpoints (ticker, order_book, available_books), private endpoints (balance, account_status, funding_destinations), three WhatsApp bot commands (saldo bitso, cotizar, bitso info), /bitso/health endpoint for sponsor demos, comprehensive sponsor documentation.
 
 **Outcome:** Bitso adapter module in agent/src/bitso/ (client, types, market, account, funding). Bot answers balance and quote questions live from Bitso sandbox. GET /bitso/health confirms configured:true with real API call. 24/24 non-AI tests pass (4 new Bitso signature tests). ADR-15 documents adapter pattern. Sponsor doc updated with talking points for the pitch.
+
+## Step 7 — Frontend PWA with Next.js 15 + Privy (Date: 2026-06-03)
+
+**Prompt:** Build the visual face of VaquitaAI as a mobile-first PWA. Privy embedded wallets, wagmi reads onchain, animated Risk Score gauge component, theme oscuro fintech. Pages: landing, vaquitas list, vaquita detail with members, join code onboarding.
+
+**Outcome:** web/ workspace with Next.js 15 app router. Risk Score gauge as SVG showcase component (animated stroke-dashoffset, turquesa→morado gradient). Reads vaquita data live from Arbitrum Sepolia via wagmi useReadContracts. Mobile-first, theme oscuro. PWA manifest configured, dev on port 3002. viem pinned to 2.51.2 for Privy peer compatibility; tailwind v3 to match config. ADR-16 documents Privy embedded wallet choice.

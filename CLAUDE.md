@@ -447,7 +447,40 @@ HMAC SHA256 per Bitso docs. Code: `agent/src/bitso/client.ts`. Tested in `agent/
 ### V1 → V2 path
 V1: read-only sandbox calls for the demo. V2: SPEI on/off-ramp with real MXNB on Arbitrum One mainnet.
 
-## 20. Operating Reminders for Claude Code
+## 20. Frontend PWA (Next.js 15 + Privy + wagmi)
+
+### Stack
+- Next.js 15 App Router
+- TypeScript strict
+- Tailwind v3 (classic `@tailwind` directives + tailwind.config.ts)
+- Privy SDK (embedded wallets + Email/Google/Twitter login)
+- wagmi v2 + viem (reads onchain); viem pinned to 2.51.2 (Privy peer requirement)
+- Mobile-first, theme oscuro
+
+### Páginas
+- `/` — landing con hero, stats, showcase del Risk Score
+- `/vaquitas` — lista de vaquitas del usuario logueado
+- `/vaquitas/[address]` — detalle con miembros y sus Risk Score gauges
+- `/join/[code]` — onboarding desde código de invitación → redirige a WhatsApp
+
+### Componentes estrella
+- `RiskScoreGauge` — SVG circular animado con gradiente turquesa→morado, número en el centro, label dinámico
+- `VaquitaCard` — card glass-morphism con métricas
+- `Header` — login/logout vía Privy, muestra wallet abreviada
+
+### PWA
+- `manifest.json` configurado
+- Instalable en celular (mobile-first)
+- Theme color matching el bg
+
+### Dev port
+3002 (no conflicta con el agent en 3001).
+
+### V1 limitations
+- Reads onchain solo. Crear vaquita / join / arrancar todavía solo desde WhatsApp.
+- Member scores en `/vaquitas/[address]` son pseudo-aleatorios derivados del address en V1. V2 = API del agent expone los scores reales.
+
+## 21. Operating Reminders for Claude Code
 
 - This project must pass the WTF→WOW test (judges say "wait, what?" then "that's brilliant")
 - Every layer of depth matters: target 8-10 distinct technical layers (CodeSonify had 5+)

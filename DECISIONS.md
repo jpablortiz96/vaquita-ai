@@ -121,3 +121,11 @@
 **Decision:** Isolate Bitso in `agent/src/bitso/` with its own client, types, and submodules (market, account, funding). Bot engine imports the high-level functions only.
 **Reasoning:** Adapter pattern. The bot calls `getBalances()`, not `bitsoClient.privateGet("/balance")`. Switching providers (or mocking for tests) is a one-file change.
 **Consequences:** Slight indirection. Worth it for separation of concerns and testability.
+
+## ADR-16: Privy embedded wallets, no MetaMask, no Web3Modal
+**Date:** 2026-06-03
+**Status:** Accepted
+**Context:** Target users are Mexican families running savings groups. Requiring them to install MetaMask is a non-starter — most don't know what a seed phrase is.
+**Decision:** Use Privy with embedded wallets. Users log in with Email/Google/X. Wallet is created invisibly. They never see a seed phrase.
+**Reasoning:** UX must match WhatsApp simplicity. Privy abstracts crypto entirely while keeping users in control via social recovery.
+**Consequences:** Dependency on Privy as a service. Acceptable — they're a YC company with strong funding and good developer DX. Note: @privy-io/wagmi pins viem to an exact version (2.51.2), so the web workspace must match.
