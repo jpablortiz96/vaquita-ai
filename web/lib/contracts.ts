@@ -4,6 +4,13 @@ export const CONTRACTS = {
     VaquitaFactory: "0xfFa51C1A2c2BDCA722045CB637D1b36E1bE6892E" as const,
 } as const;
 
+/**
+ * In V1 the bot's deployer wallet signs every on-chain action (creates all
+ * vaquitas on behalf of WhatsApp users). The web app reads vaquitas from this
+ * signer so the demo shows the real on-chain data. V2 = per-user Privy wallets.
+ */
+export const SIGNER_ADDRESS = "0x8f60C29a7BAC9E16aeBa053e509d7C5FDff8a377" as const;
+
 export const vaquitaAbi = [
     {
         type: "function",

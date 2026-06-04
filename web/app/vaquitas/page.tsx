@@ -3,21 +3,22 @@
 import { Header } from "@/components/header";
 import { VaquitaCard } from "@/components/vaquita-card";
 import { usePrivy } from "@privy-io/react-auth";
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { CONTRACTS, factoryAbi, vaquitaAbi } from "@/lib/contracts";
+import { useReadContract, useReadContracts } from "wagmi";
+import { CONTRACTS, SIGNER_ADDRESS, factoryAbi, vaquitaAbi } from "@/lib/contracts";
 import type { Address } from "viem";
 
 export default function VaquitasPage() {
-    const { ready, authenticated, login, user } = usePrivy();
-    const { address } = useAccount();
-    const userAddress = (address ?? user?.wallet?.address) as Address | undefined;
+    const { ready, authenticated, login } = usePrivy();
 
+    // V1: all vaquitas are created on-chain by the bot's deployer signer (it acts
+    // on behalf of WhatsApp users). We read the signer's vaquitas so the logged-in
+    // user sees the real on-chain data. V2 = filter by the user's own Privy wallet.
     const { data: vaquitaAddresses } = useReadContract({
         address: CONTRACTS.VaquitaFactory,
         abi: factoryAbi,
         functionName: "getVaquitasByCreator",
-        args: userAddress ? [userAddress] : undefined,
-        query: { enabled: !!userAddress },
+        args: [SIGNER_ADDRESS as Address],
+        query: { enabled: authenticated },
     });
 
     const list = (vaquitaAddresses as Address[] | undefined) ?? [];
