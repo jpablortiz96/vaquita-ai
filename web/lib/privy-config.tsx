@@ -31,7 +31,6 @@ export function Providers({ children }: { children: ReactNode }) {
                 appearance: {
                     theme: "dark",
                     accentColor: "#00d4aa",
-                    logo: "/logo.svg",
                 },
                 embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
                 defaultChain: arbitrumSepolia,

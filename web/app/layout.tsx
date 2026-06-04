@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     title: "VaquitaAI — Vaquitas onchain con IA",
     description: "Ahorros rotativos digitales para LATAM. Pesos digitales, sin papeles, con IA evaluando confianza.",
     manifest: "/manifest.json",
-    icons: { icon: "/favicon.svg", apple: "/apple-icon.png" },
+    icons: { icon: "/favicon.svg" },
 };
 
 export const viewport: Viewport = {
