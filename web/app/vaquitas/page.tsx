@@ -23,9 +23,12 @@ export default function VaquitasPage() {
 
     const list = (vaquitaAddresses as Address[] | undefined) ?? [];
 
+    const CALLS_PER_VAQUITA = 5;
     const { data: statesData } = useReadContracts({
         contracts: list.flatMap((addr) => [
-            { address: addr, abi: vaquitaAbi, functionName: "config" as const },
+            { address: addr, abi: vaquitaAbi, functionName: "contributionAmount" as const },
+            { address: addr, abi: vaquitaAbi, functionName: "totalMembers" as const },
+            { address: addr, abi: vaquitaAbi, functionName: "cycleDuration" as const },
             { address: addr, abi: vaquitaAbi, functionName: "status" as const },
             { address: addr, abi: vaquitaAbi, functionName: "getMembers" as const },
         ]),
@@ -70,25 +73,25 @@ export default function VaquitasPage() {
                 ) : (
                     <div style={{ display: "grid", gap: 16 }}>
                         {list.map((addr, i) => {
-                            const configIdx = i * 3;
-                            const statusIdx = i * 3 + 1;
-                            const membersIdx = i * 3 + 2;
-                            const config = statesData?.[configIdx]?.result as readonly [bigint, bigint, bigint, bigint, Address, Address] | undefined;
-                            const status = (statesData?.[statusIdx]?.result as number | undefined) ?? 0;
-                            const members = (statesData?.[membersIdx]?.result as readonly Address[] | undefined) ?? [];
+                            const base = i * CALLS_PER_VAQUITA;
+                            const contribution = statesData?.[base]?.result as bigint | undefined;
+                            const totalMembers = statesData?.[base + 1]?.result as number | undefined;
+                            const cycleDuration = statesData?.[base + 2]?.result as bigint | undefined;
+                            const status = (statesData?.[base + 3]?.result as number | undefined) ?? 0;
+                            const members = (statesData?.[base + 4]?.result as readonly Address[] | undefined) ?? [];
 
-                            if (!config) {
+                            if (contribution === undefined || totalMembers === undefined || cycleDuration === undefined) {
                                 return <SkeletonCard key={addr} />;
                             }
                             return (
                                 <VaquitaCard
                                     key={addr}
                                     address={addr}
-                                    contributionAmount={config[0]}
-                                    totalMembers={Number(config[2])}
+                                    contributionAmount={contribution}
+                                    totalMembers={Number(totalMembers)}
                                     currentMembers={members.length}
                                     status={status}
-                                    cycleDays={Number(config[3]) / 86400}
+                                    cycleDays={Number(cycleDuration) / 86400}
                                 />
                             );
                         })}

@@ -11,24 +11,53 @@ export const CONTRACTS = {
  */
 export const SIGNER_ADDRESS = "0x8f60C29a7BAC9E16aeBa053e509d7C5FDff8a377" as const;
 
+// The Vaquita contract exposes individual public getters (not a single config tuple).
 export const vaquitaAbi = [
     {
         type: "function",
-        name: "config",
+        name: "status",
         stateMutability: "view",
         inputs: [],
-        outputs: [
-            { name: "contributionAmount", type: "uint256" },
-            { name: "collateralAmount", type: "uint256" },
-            { name: "totalMembers", type: "uint256" },
-            { name: "cycleDuration", type: "uint256" },
-            { name: "token", type: "address" },
-            { name: "creator", type: "address" },
-        ],
+        outputs: [{ name: "", type: "uint8" }],
     },
     {
         type: "function",
-        name: "status",
+        name: "creator",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "address" }],
+    },
+    {
+        type: "function",
+        name: "contributionAmount",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "uint256" }],
+    },
+    {
+        type: "function",
+        name: "collateralAmount",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "uint256" }],
+    },
+    {
+        type: "function",
+        name: "totalMembers",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "uint8" }],
+    },
+    {
+        type: "function",
+        name: "cycleDuration",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "uint256" }],
+    },
+    {
+        type: "function",
+        name: "currentCycle",
         stateMutability: "view",
         inputs: [],
         outputs: [{ name: "", type: "uint8" }],
@@ -39,13 +68,6 @@ export const vaquitaAbi = [
         stateMutability: "view",
         inputs: [],
         outputs: [{ name: "", type: "address[]" }],
-    },
-    {
-        type: "function",
-        name: "currentCycle",
-        stateMutability: "view",
-        inputs: [],
-        outputs: [{ name: "", type: "uint256" }],
     },
 ] as const;
 

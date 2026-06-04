@@ -14,7 +14,10 @@ export default function VaquitaDetailPage({ params }: { params: Promise<{ addres
 
     const { data } = useReadContracts({
         contracts: [
-            { address: vaquitaAddr, abi: vaquitaAbi, functionName: "config" },
+            { address: vaquitaAddr, abi: vaquitaAbi, functionName: "contributionAmount" },
+            { address: vaquitaAddr, abi: vaquitaAbi, functionName: "collateralAmount" },
+            { address: vaquitaAddr, abi: vaquitaAbi, functionName: "totalMembers" },
+            { address: vaquitaAddr, abi: vaquitaAbi, functionName: "cycleDuration" },
             { address: vaquitaAddr, abi: vaquitaAbi, functionName: "status" },
             { address: vaquitaAddr, abi: vaquitaAbi, functionName: "getMembers" },
             { address: vaquitaAddr, abi: vaquitaAbi, functionName: "currentCycle" },
@@ -30,12 +33,15 @@ export default function VaquitaDetailPage({ params }: { params: Promise<{ addres
         );
     }
 
-    const config = data[0]?.result as readonly [bigint, bigint, bigint, bigint, Address, Address] | undefined;
-    const status = (data[1]?.result as number | undefined) ?? 0;
-    const members = (data[2]?.result as readonly Address[] | undefined) ?? [];
-    const currentCycle = data[3]?.result as bigint | undefined;
+    const contribution = data[0]?.result as bigint | undefined;
+    const collateral = data[1]?.result as bigint | undefined;
+    const totalMembersRaw = data[2]?.result as number | undefined;
+    const cycleDuration = data[3]?.result as bigint | undefined;
+    const status = (data[4]?.result as number | undefined) ?? 0;
+    const members = (data[5]?.result as readonly Address[] | undefined) ?? [];
+    const currentCycle = data[6]?.result as number | undefined;
 
-    if (!config) {
+    if (contribution === undefined || collateral === undefined || totalMembersRaw === undefined || cycleDuration === undefined) {
         return (
             <>
                 <Header />
@@ -46,7 +52,7 @@ export default function VaquitaDetailPage({ params }: { params: Promise<{ addres
         );
     }
 
-    const [contribution, collateral, totalMembers, cycleDuration, _token, _creator] = config;
+    const totalMembers = BigInt(totalMembersRaw);
     const cycleDays = Number(cycleDuration) / 86400;
     const pool = contribution * totalMembers;
 
