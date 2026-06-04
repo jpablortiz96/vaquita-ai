@@ -79,3 +79,9 @@
 **Prompt:** Add /qr and /demo routes to the PWA. Server-rendered SVG QR codes with center logo. Deep link to WhatsApp pre-filled with sandbox activation. Designed for the in-person demo at CDMX where a judge can scan the phone and be on the bot in 30 seconds.
 
 **Outcome:** Two new routes. QR code is SSR-generated using the qrcode npm package with error correction H to allow logo overlay. /demo route includes animated Risk Score showcase + feature grid + dual CTAs. Mobile-first design. Build: /qr (dynamic SSR) + /demo (static) compile clean, typecheck passes.
+
+## Feature G+ — Humanized landing page (Date: 2026-06-04)
+
+**Prompt:** Robust the landing page copy to speak to families (not developers). Replace tech-heavy language ("Claude Sonnet 4.5", "Arbitrum", "MXNB", "onchain") with human storytelling. Add "Before vs Now" narrative section. Add testimonials. Keep technical details accessible via collapsible section at the bottom.
+
+**Outcome:** Landing now tells a story: traditional vaquita problems vs digital solution. Includes 4-step process, AI explanation in human terms, 3 testimonials in Mexican Spanish, humanized stats, expandable "for the curious" technical section at the end. Mobile-first. Build: 7 routes compile, typecheck clean.
