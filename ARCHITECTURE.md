@@ -1,43 +1,161 @@
-# VaquitaAI — Architecture
+# VaquitaAI Architecture
 
-> Detailed architecture documentation. This file will be expanded with each phase.
+## Overview
 
-## High-Level Diagram
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   User      │────▶│  Twilio          │────▶│   AI Agent      │
-│  (WhatsApp) │     │  WhatsApp API    │     │   (Node.js +    │
-└─────────────┘     └──────────────────┘     │   Claude API)   │
-                                             └────────┬────────┘
-                                                      │
-          ┌──────────────────┬───────────┼───────────┬──────────────────┐
-          ▼                  ▼           ▼           ▼                  ▼
-    ┌─────────┐      ┌──────────┐  ┌────────┐  ┌──────────┐    ┌──────────────┐
-    │ Bitso   │      │ Supabase │  │Arbitrum│  │ElevenLabs│    │  Privy       │
-    │ API     │      │(Postgres)│  │  One   │  │  (TTS)   │    │ (Wallets)    │
-    └─────────┘      └──────────┘  └────────┘  └──────────┘    └──────────────┘
+VaquitaAI is a 3-layer system:
+1. **Smart contracts** — Solidity on Arbitrum (the source of truth for state and money)
+2. **AI agent backend** — Node.js + TypeScript Fastify server (the brain)
+3. **User interfaces** — WhatsApp (primary) + Next.js PWA (secondary)
 
-## Components
+```
+┌──────────────────────────────────────────────────────────────┐
+│                          USER LAYER                          │
+├──────────────────────────────────────────────────────────────┤
+│  📱 WhatsApp (95% of users)                                  │
+│     └─ Twilio Sandbox / Production                           │
+│  🌐 Next.js 15 PWA (secondary)                               │
+│     └─ Privy embedded wallets + wagmi                        │
+└──────────────────────────────────────────────────────────────┘
+                            │
+                            │ HTTPS webhooks + RPC reads
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│                       AGENT LAYER                            │
+├──────────────────────────────────────────────────────────────┤
+│  Fastify server :3001                                        │
+│     ├─ /webhook/twilio  ── inbound WhatsApp                  │
+│     ├─ /voice/synthesize ── on-demand TTS                    │
+│     ├─ /audio/:filename  ── public audio serving             │
+│     ├─ /bitso/health     ── sponsor health check             │
+│     └─ /health           ── server liveness                  │
+│                                                              │
+│  Services:                                                   │
+│     ├─ Intent classifier (Claude Sonnet 4.5)                 │
+│     ├─ Risk scorer (Claude Sonnet 4.5)                       │
+│     ├─ Payout orchestrator (AI + onchain)                    │
+│     ├─ Voice synthesis (ElevenLabs)                          │
+│     ├─ Bitso API client (HMAC signed)                        │
+│     └─ Conversation state machine                            │
+└──────────────────────────────────────────────────────────────┘
+                            │
+                            │ viem reads + writes
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    BLOCKCHAIN LAYER                          │
+├──────────────────────────────────────────────────────────────┤
+│  Arbitrum Sepolia (V1) / Arbitrum One (V2)                   │
+│                                                              │
+│  VaquitaFactory  (EIP-1167 minimal proxies)                  │
+│     │                                                        │
+│     ├─ Vaquita #1                                            │
+│     ├─ Vaquita #2     ← each is a clone (~306K gas)          │
+│     ├─ Vaquita #3                                            │
+│     └─ ...                                                   │
+│                                                              │
+│  MockMXNB (Sepolia) / MXNB by Bitso (mainnet)                │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### `Vaquita.sol` (implemented in Step 2)
-The core escrow + payout state machine. One instance per vaquita group. Stores collateral, accepts contributions, distributes the per-cycle pool to the next recipient, and handles defaults via collateral consumption. Permissionless `executeCycle` settlement after deadline. Independent of the AI agent — the agent only writes the payout order at setup time.
+## Data Flow: Create a Vaquita
 
-### `IRiskOracle.sol` (interface defined in Step 1, implementation in Week 2)
-On-chain oracle that the off-chain AI agent populates with member risk scores. The Vaquita contract does not yet read from it in V1 — the creator-set payout order is sufficient. V2 will consume scores directly from the oracle and reorder cycles dynamically.
+```
+User WhatsApp                Agent                    Blockchain
+     │                         │                          │
+     │ "hacer una vaquita..."  │                          │
+     ├────────────────────────▶                           │
+     │                         │ Classify intent (Claude) │
+     │                         │ Extract: contribution,   │
+     │                         │   members, cycle         │
+     │                         │                          │
+     │ Bot asks for missing    │                          │
+     │   params (state ML)     │                          │
+     ◀─────────────────────────┤                          │
+     │                         │                          │
+     │ User confirms "sí"      │                          │
+     ├────────────────────────▶                           │
+     │                         │ Factory.createVaquita()  │
+     │                         ├──────────────────────────▶
+     │                         │                          │
+     │                         │ Receipt + address        │
+     │                         ◀──────────────────────────┤
+     │                         │                          │
+     │ "🎉 Tu vaquita está     │                          │
+     │  onchain en 0x..."      │                          │
+     ◀─────────────────────────┤                          │
+```
 
-### `MockMXNB.sol` (implemented in Step 1)
-6-decimal ERC-20 token mimicking real MXNB on Arbitrum One. Includes a public faucet so judges can self-serve testnet tokens during the demo.
+## Data Flow: Risk-Scored Join
 
-### Pending components
-- `VaquitaFactory.sol` (Step 3): clones-based factory to spin up vaquitas cheaply.
-- AI Agent Service (Week 2): risk scorer + orchestrator + recovery bot.
-- WhatsApp Bot (Week 2): conversational interface.
-- PWA Frontend (Week 3): mobile-first dashboard with Privy auth.
-- Bitso Integration (Week 3): MXN ↔ MXNB on/off-ramp.
+```
+Creator              Candidate              Agent                Claude              Blockchain
+   │                     │                    │                    │                     │
+   │ "invitar"           │                    │                    │                     │
+   ├────────────────────────────────────────▶                      │                     │
+   │ ← invite code       │                    │                    │                     │
+   │                     │                    │                    │                     │
+   │      shares code    │                    │                    │                     │
+   ├────────────────────▶│                    │                    │                     │
+   │                     │ "unirme con código"│                    │                     │
+   │                     ├──────────────────▶│                    │                     │
+   │                     │  ← ask name        │                    │                     │
+   │                     ◀───────────────────┤                    │                     │
+   │                     │ "María"            │                    │                     │
+   │                     ├──────────────────▶│                    │                     │
+   │                     │  (4 questions)     │                    │                     │
+   │                     │                    │                    │                     │
+   │                     │                    │ Score member       │                     │
+   │                     │                    ├──────────────────▶│                     │
+   │                     │                    │  ← {score: 78,     │                     │
+   │                     │                    │     reasoning,     │                     │
+   │                     │                    │     position}      │                     │
+   │                     │                    ◀───────────────────┤                     │
+   │                     │                    │                    │                     │
+   │ ← "Solicitud + AI   │                    │                    │                     │
+   │   score 78..."      │                    │                    │                     │
+   ◀──────────────────────────────────────────┤                    │                     │
+   │                     │                    │                    │                     │
+   │ "sí" (approve)      │                    │                    │                     │
+   ├────────────────────────────────────────▶│                    │                     │
+   │                     │                    │ approveToken() +   │                     │
+   │                     │                    │ joinVaquita()      │                     │
+   │                     │                    ├────────────────────────────────────────▶│
+   │                     │                    │   ← onchain join   │                     │
+   │                     │                    ◀────────────────────────────────────────┤
+   │                     │                    │                    │                     │
+   │                     │ ← "Aprobada!"      │                    │                     │
+   │                     │  + voice MP3       │                    │                     │
+   │                     ◀───────────────────┤                    │                     │
+```
 
-## Data Flow (Coming in Step 1)
+## Key Design Decisions
 
-To be documented after smart contracts are written.
+| Decision | Reasoning | ADR |
+|---|---|---|
+| EIP-1167 clones for vaquitas | 4.9× cheaper than full deploys | ADR-9 |
+| In-memory state for V1 | Faster development; V2 = Supabase | ADR-10 |
+| Single deployer signer for V1 | Simpler UX; V2 = per-user Privy wallets | ADR-10 |
+| Pseudo-address from phone hash | Lets risk scorer work without real wallets | ADR-12 |
+| Local audio storage + Fastify static | Zero infra overhead | ADR-13 |
+| Human-in-loop approval | AI suggests, human decides | ADR-14 |
+| Bitso adapter pattern | Isolated, testable, swappable | ADR-15 |
+| Privy embedded wallets | UX matches WhatsApp simplicity | ADR-16 |
 
-## Security Considerations (Coming in Week 2)
+See [DECISIONS.md](./DECISIONS.md) for full ADR details.
 
-To be documented after AI Risk Scorer is implemented.
+## Security Considerations
+
+- All onchain transactions signed by the deployer in V1 (multi-sig planned for V2)
+- API keys never committed (.env always gitignored)
+- HMAC signatures for Bitso (per their docs)
+- ReentrancyGuard on all token operations
+- Twilio webhook signature validation (when PUBLIC_URL is set)
+- No user PII stored beyond what's needed for the AI scorer
+
+## Operational Considerations
+
+- **ngrok dev tunnel:** required while Twilio webhook is on localhost
+- **Twilio sandbox limits:** 50 messages/day, 24h messaging window, 3-day session expiry
+- **Free tier limits:** ElevenLabs 10K chars/mo, Anthropic limited by API key, Bitso unlimited reads in sandbox
+- **Gas costs (Arbitrum Sepolia):** ~$0 (testnet); ~$0.10 per vaquita on mainnet
+
+---
