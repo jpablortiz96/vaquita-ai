@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+    <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0a0a0f"/>
+            <stop offset="100%" stop-color="#15151c"/>
+        </linearGradient>
+        <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00d4aa"/>
+            <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+    </defs>
+
+    <rect width="800" height="450" rx="16" fill="url(#bg)" stroke="url(#border)" stroke-width="2"/>
+
+    <text x="400" y="180" text-anchor="middle" font-size="64" font-family="system-ui, sans-serif">🎬</text>
+
+    <text x="400" y="240" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" font-weight="700" fill="#ededf3">Demo Video</text>
+
+    <text x="400" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#8a8a96">3-minute walkthrough</text>
+
+    <text x="400" y="320" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#8a8a96">Replace with screenshots/demo.gif when recorded</text>
+
+    <g transform="translate(370, 360)">
+        <rect width="60" height="32" rx="6" fill="#00d4aa"/>
+        <text x="30" y="22" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#0a0a0f">▶ Play</text>
+    </g>
+</svg>
