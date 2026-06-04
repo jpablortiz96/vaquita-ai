@@ -73,3 +73,9 @@
 **Prompt:** Build the visual face of VaquitaAI as a mobile-first PWA. Privy embedded wallets, wagmi reads onchain, animated Risk Score gauge component, theme oscuro fintech. Pages: landing, vaquitas list, vaquita detail with members, join code onboarding.
 
 **Outcome:** web/ workspace with Next.js 15 app router. Risk Score gauge as SVG showcase component (animated stroke-dashoffset, turquesa→morado gradient). Reads vaquita data live from Arbitrum Sepolia via wagmi useReadContracts. Mobile-first, theme oscuro. PWA manifest configured, dev on port 3002. viem pinned to 2.51.2 for Privy peer compatibility; tailwind v3 to match config. ADR-16 documents Privy embedded wallet choice.
+
+## Feature G — QR code onboarding for in-person demo (Date: 2026-06-04)
+
+**Prompt:** Add /qr and /demo routes to the PWA. Server-rendered SVG QR codes with center logo. Deep link to WhatsApp pre-filled with sandbox activation. Designed for the in-person demo at CDMX where a judge can scan the phone and be on the bot in 30 seconds.
+
+**Outcome:** Two new routes. QR code is SSR-generated using the qrcode npm package with error correction H to allow logo overlay. /demo route includes animated Risk Score showcase + feature grid + dual CTAs. Mobile-first design. Build: /qr (dynamic SSR) + /demo (static) compile clean, typecheck passes.

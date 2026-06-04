@@ -487,3 +487,25 @@ V1: read-only sandbox calls for the demo. V2: SPEI on/off-ramp with real MXNB on
 - Document sponsor tool usage with screenshots — most teams forget this and lose points
 - Working demo > perfect code. A broken demo = instant elimination
 - The user is fast but not necessarily an expert in every part of this stack — explain assumptions step by step
+
+## 22. QR Code Onboarding (Feature G)
+
+### Routes
+- `/qr` — full-screen QR code page. Shows a 400px QR with center logo. Designed to be displayed on a phone at the demo booth.
+- `/demo` — simplified landing for visitors who scan the QR but want to "see first". Animated Risk Score, feature grid, dual CTAs (WhatsApp + see vaquitas).
+
+### QR generation
+SSR via `qrcode` npm package. Generates SVG at request time. Error correction level H allows the center logo overlay without breaking scanability.
+
+### Deep link
+QR encodes: `https://wa.me/14155238886?text=join%20till-breathing`
+When scanned, opens WhatsApp with the sandbox activation message pre-filled. User just hits send.
+
+### Demo flow at CDMX
+1. Open `/qr` on your phone, full-screen brightness up
+2. Show it to a judge at the booth
+3. Judge scans with their camera
+4. WhatsApp opens with "join till-breathing" pre-filled
+5. They hit send -> bot welcomes them
+6. They can immediately type "hacer una vaquita" and start a flow
+7. Total time from scan to first vaquita: ~30 seconds
