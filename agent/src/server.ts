@@ -69,7 +69,16 @@ fastify.get("/bitso/health", async () => {
             },
         };
     } catch (err) {
-        return { configured: true, status: "error", error: (err as Error).message };
+        // "fetch failed" from undici is generic — the real reason lives on err.cause.
+        // Surface it so we can tell DNS (ENOTFOUND) from timeout (ETIMEDOUT),
+        // refused connection (ECONNREFUSED), or a TLS/cert problem.
+        const e = err as { message?: string; cause?: { code?: string; message?: string } };
+        return {
+            configured: true,
+            status: "error",
+            error: e.message ?? "unknown",
+            cause: e.cause?.code ?? e.cause?.message ?? "(no cause — likely auth/HTTP error, not network)",
+        };
     }
 });
 
