@@ -509,3 +509,35 @@ When scanned, opens WhatsApp with the sandbox activation message pre-filled. Use
 5. They hit send -> bot welcomes them
 6. They can immediately type "hacer una vaquita" and start a flow
 7. Total time from scan to first vaquita: ~30 seconds
+
+## 23. Organizer Dashboard (Feature D)
+
+### Route
+`/vaquitas/[address]/dashboard` — administrative command center for a vaquita
+
+### Components introduced
+- `KPICard` — animated count-up metric card
+- `CycleTimeline` — horizontal timeline of vaquita cycles (done/active/future)
+- `MemberRow` — member display with avatar, score gauge mini, status badge
+- `ActivityFeed` — chronological feed of vaquita events
+- `AlertBanner` — contextual notification banner with 4 variants
+- `RiskDistribution` — bar chart of member score distribution
+- `QuickActions` — grid of admin action buttons
+
+### Real-time refresh
+Polls onchain data every 15s via wagmi `refetch()`.
+
+### Contextual views
+- **Status 0 (Created)**: Shows "missing members" alert + invite CTA
+- **Status 1 (Active)**: Shows timeline + ciclo activo with shimmer animation
+- **Status 2 (Completed)**: Shows congrats banner + final summary
+
+### Reads individual contract getters
+Like the detail page, the dashboard reads contributionAmount, collateralAmount,
+totalMembers, cycleDuration, status, getMembers, currentCycle individually — the
+contract has no config() tuple getter.
+
+### V1 limitations (documented)
+- Member names are placeholders ("Miembro 1"); V2 will pull from agent API
+- Member scores are pseudo-deterministic from addresses; V2 = real Claude scores
+- Activity feed is mocked; V2 will read real onchain events via viem watchContractEvent

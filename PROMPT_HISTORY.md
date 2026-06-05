@@ -85,3 +85,9 @@
 **Prompt:** Robust the landing page copy to speak to families (not developers). Replace tech-heavy language ("Claude Sonnet 4.5", "Arbitrum", "MXNB", "onchain") with human storytelling. Add "Before vs Now" narrative section. Add testimonials. Keep technical details accessible via collapsible section at the bottom.
 
 **Outcome:** Landing now tells a story: traditional vaquita problems vs digital solution. Includes 4-step process, AI explanation in human terms, 3 testimonials in Mexican Spanish, humanized stats, expandable "for the curious" technical section at the end. Mobile-first. Build: 7 routes compile, typecheck clean.
+
+## Feature D — Organizer Dashboard (Date: 2026-06-05)
+
+**Prompt:** Build the administrative command center for vaquita organizers. KPI cards with count-up animations, cycle timeline with shimmer on active cycle, member rows with score gauges, activity feed, contextual alerts, risk distribution chart, quick action buttons. Mobile-first, real-time refresh every 15s.
+
+**Outcome:** New route `/vaquitas/[address]/dashboard` with 7 new reusable components (KPICard, CycleTimeline, MemberRow, ActivityFeed, AlertBanner, RiskDistribution, QuickActions). Three contextual views based on vaquita status. Polling-based 15s real-time updates. Link added to vaquita detail page. Adapted reads to the real contract individual getters (not the nonexistent config() tuple that the original spec assumed). Build: 8 routes compile, typecheck clean.

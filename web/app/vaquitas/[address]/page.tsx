@@ -103,16 +103,22 @@ export default function VaquitaDetailPage({ params }: { params: Promise<{ addres
                     ))}
                 </div>
 
-                <div style={{ marginTop: 36, padding: 20, textAlign: "center" }} className="glass">
-                    <span style={{ color: "var(--text-dim)", fontSize: 13 }}>Ver en blockchain:</span>
-                    <br />
+                <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <a
+                        href={`/vaquitas/${vaquitaAddr}/dashboard`}
+                        className="btn-primary"
+                        style={{ textDecoration: "none", textAlign: "center", padding: "14px 20px" }}
+                    >
+                        📊 Ver dashboard completo
+                    </a>
                     <a
                         href={`https://sepolia.arbiscan.io/address/${vaquitaAddr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: 14 }}
+                        className="btn-ghost"
+                        style={{ textDecoration: "none", textAlign: "center", padding: "14px 20px", color: "var(--text)" }}
                     >
-                        sepolia.arbiscan.io/address/{shortAddress(vaquitaAddr)} ↗
+                        🔗 Ver onchain
                     </a>
                 </div>
             </main>
