@@ -517,6 +517,56 @@ async function handleDenyIntent(phone: string, sendToOther?: OutboundSender): Pr
     return executeApproval({ approval: oldest, approve: false, sendToOther });
 }
 
+/**
+ * Best-effort notification to an approved candidate: text message + optional voice.
+ * Runs in the background (not awaited by the approval flow) so a flaky network or
+ * slow voice synthesis never blocks the creator's confirmation reply. Every step is
+ * wrapped so a failure here can never crash the approval.
+ */
+async function notifyApprovedCandidate(args: {
+    candidatePhone: string;
+    candidateName: string;
+    vaquitaAddress: Address;
+    contributionAmount: bigint;
+    totalMembers: number;
+    cycleDuration: bigint;
+    sendToOther: OutboundSender;
+}): Promise<void> {
+    const { candidatePhone, candidateName, vaquitaAddress, contributionAmount, totalMembers, cycleDuration, sendToOther } =
+        args;
+
+    try {
+        await sendToOther({ toPhone: candidatePhone, body: MESSAGES.approved(vaquitaAddress) });
+    } catch (err) {
+        console.error(`[APPROVE] candidate text notify failed (non-fatal):`, err);
+    }
+
+    try {
+        const { isVoiceConfigured } = await import("../config/env.js");
+        if (!isVoiceConfigured()) return;
+
+        const { synthesizeSpanish, audioPublicUrl } = await import("../ai/voice.js");
+        const { welcomeApprovedScript } = await import("../ai/voice-scripts.js");
+        const { sendWhatsAppMedia } = await import("./twilio-client.js");
+
+        const contributionHuman = readService.formatTokenAmount(contributionAmount);
+        const cycleDays = Math.round(Number(cycleDuration) / 86400);
+        const script = welcomeApprovedScript({ candidateName, contributionAmount: contributionHuman, totalMembers, cycleDays });
+
+        const { filename } = await synthesizeSpanish(script);
+        const url = audioPublicUrl(filename);
+        if (!url) {
+            console.warn(`[APPROVE] skipping voice send — PUBLIC_URL not set or invalid`);
+            return;
+        }
+        const to = candidatePhone.startsWith("whatsapp:") ? candidatePhone : `whatsapp:${candidatePhone}`;
+        await sendWhatsAppMedia({ to, body: "🎙️ Mensaje de bienvenida personalizado", mediaUrl: url });
+        console.log(`[APPROVE] voice welcome sent to ${candidatePhone}`);
+    } catch (voiceErr) {
+        console.error(`[APPROVE] voice welcome failed (non-fatal):`, voiceErr);
+    }
+}
+
 async function executeApproval(args: {
     approval: PendingApproval;
     approve: boolean;
@@ -554,50 +604,21 @@ async function executeApproval(args: {
 
         resetSession(approval.candidatePhone);
 
-        // Notify the candidate with text + optional voice.
+        // Notify the candidate (text + optional voice) in the BACKGROUND so the
+        // creator's "✅ Aprobado" reply returns immediately. These outbound calls
+        // can be slow (Twilio retries) or hang (voice synthesis) when the network
+        // is flaky — awaiting them here would push the webhook toward Twilio's 15s
+        // timeout. The onchain join already completed above, so the approval is final.
         if (sendToOther) {
-            await sendToOther({
-                toPhone: approval.candidatePhone,
-                body: MESSAGES.approved(approval.vaquitaAddress),
+            void notifyApprovedCandidate({
+                candidatePhone: approval.candidatePhone,
+                candidateName: approval.candidateName,
+                vaquitaAddress: approval.vaquitaAddress,
+                contributionAmount: state.config.contributionAmount,
+                totalMembers: state.config.totalMembers,
+                cycleDuration: state.config.cycleDuration,
+                sendToOther,
             });
-
-            // Try to add a voice welcome message. Fail silently if voice isn't configured.
-            try {
-                const { isVoiceConfigured } = await import("../config/env.js");
-                if (isVoiceConfigured()) {
-                    const { synthesizeSpanish, audioPublicUrl } = await import("../ai/voice.js");
-                    const { welcomeApprovedScript } = await import("../ai/voice-scripts.js");
-                    const { sendWhatsAppMedia } = await import("./twilio-client.js");
-
-                    const contributionHuman = readService.formatTokenAmount(state.config.contributionAmount);
-                    const cycleDays = Math.round(Number(state.config.cycleDuration) / 86400);
-                    const script = welcomeApprovedScript({
-                        candidateName: approval.candidateName,
-                        contributionAmount: contributionHuman,
-                        totalMembers: state.config.totalMembers,
-                        cycleDays,
-                    });
-
-                    const { filename } = await synthesizeSpanish(script);
-                    const url = audioPublicUrl(filename);
-
-                    if (!url) {
-                        console.warn(`[APPROVE] skipping voice send — PUBLIC_URL not set or invalid`);
-                    } else {
-                        const to = approval.candidatePhone.startsWith("whatsapp:")
-                            ? approval.candidatePhone
-                            : `whatsapp:${approval.candidatePhone}`;
-                        await sendWhatsAppMedia({
-                            to,
-                            body: "🎙️ Mensaje de bienvenida personalizado",
-                            mediaUrl: url,
-                        });
-                        console.log(`[APPROVE] voice welcome sent to ${approval.candidatePhone}`);
-                    }
-                }
-            } catch (voiceErr) {
-                console.error(`[APPROVE] voice welcome failed (non-fatal):`, voiceErr);
-            }
         }
 
         return [MESSAGES.approvalConfirmedByCreator(approval.candidateName)];
