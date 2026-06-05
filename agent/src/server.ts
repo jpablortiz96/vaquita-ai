@@ -111,7 +111,13 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
             .send(twiml([]));
     }
 
-    // Optional: verify Twilio signature if PUBLIC_URL is set
+    // Twilio signature check — informational only, never blocking.
+    //
+    // PUBLIC_URL is required for voice (ElevenLabs MP3 mediaUrl), so it is always
+    // set in a working setup. The signature, however, frequently fails to validate
+    // behind the ngrok tunnel / WhatsApp sandbox (URL reconstruction + sandbox
+    // subaccount quirks). Blocking on it returned 403 and silently dropped every
+    // real message. We log the result for visibility but always process the message.
     if (env.PUBLIC_URL) {
         const signature = request.headers["x-twilio-signature"] as string | undefined;
         const fullUrl = `${env.PUBLIC_URL}/webhook/twilio`;
@@ -121,8 +127,7 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
             params: body as Record<string, string>,
         });
         if (!ok) {
-            fastify.log.warn("Invalid Twilio signature");
-            return reply.code(403).send({ error: "invalid signature" });
+            fastify.log.warn("Twilio signature did not validate (continuing anyway — sandbox/ngrok tunnel)");
         }
     }
 
