@@ -48,13 +48,24 @@ export class BitsoClient {
         return data.payload;
     }
 
+    /**
+     * The Bitso HMAC signature is computed over the FULL request path, including
+     * the `/api/v3` version prefix and any query string — e.g.
+     * `/api/v3/account_status`, not just `/account_status`. baseUrl already carries
+     * the prefix, so we derive the path from the full URL's pathname + search.
+     */
+    private signedPath(path: string): string {
+        const u = new URL(`${this.baseUrl}${path}`);
+        return u.pathname + u.search;
+    }
+
     /** Private GET — HMAC-signed. Used for account-specific data. */
     async privateGet<T>(path: string): Promise<T> {
         if (!this.apiKey || !this.apiSecret) {
             throw new Error("Bitso credentials not configured");
         }
         const nonce = Date.now().toString();
-        const message = `${nonce}GET${path}`;
+        const message = `${nonce}GET${this.signedPath(path)}`;
         const signature = createHmac("sha256", this.apiSecret).update(message).digest("hex");
         const auth = `Bitso ${this.apiKey}:${nonce}:${signature}`;
 
@@ -77,7 +88,7 @@ export class BitsoClient {
         }
         const nonce = Date.now().toString();
         const jsonBody = JSON.stringify(body);
-        const message = `${nonce}POST${path}${jsonBody}`;
+        const message = `${nonce}POST${this.signedPath(path)}${jsonBody}`;
         const signature = createHmac("sha256", this.apiSecret).update(message).digest("hex");
         const auth = `Bitso ${this.apiKey}:${nonce}:${signature}`;
 
