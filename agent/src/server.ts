@@ -110,6 +110,26 @@ fastify.post<{ Body: TwilioWebhookBody }>("/webhook/twilio", async (request, rep
     const fromRaw = body.From;
     const text = body.Body;
 
+    // Twilio also POSTs error/status callbacks to this URL (they carry a `Payload`
+    // field, not From/Body). These are NOT user messages — acknowledge them quietly
+    // and surface the underlying error code instead of dumping the whole blob.
+    if (body.Payload) {
+        let errorCode = "?";
+        try {
+            errorCode = (JSON.parse(body.Payload) as { error_code?: string }).error_code ?? "?";
+        } catch {
+            /* keep "?" */
+        }
+        const hint =
+            errorCode === "63038"
+                ? "Twilio sandbox daily limit (50 msgs/day) exceeded — resets in 24h"
+                : errorCode === "63015"
+                  ? "Recipient sandbox session expired — they must re-send the join keyword"
+                  : "see Twilio debugger";
+        fastify.log.warn({ errorCode }, `📋 Twilio status callback: error ${errorCode} (${hint})`);
+        return reply.code(200).header("Content-Type", "text/xml").send(twiml([]));
+    }
+
     fastify.log.info({ from: fromRaw, text }, "📨 Webhook received");
 
     if (!fromRaw || !text) {
