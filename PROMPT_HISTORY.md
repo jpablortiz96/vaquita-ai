@@ -91,3 +91,9 @@
 **Prompt:** Build the administrative command center for vaquita organizers. KPI cards with count-up animations, cycle timeline with shimmer on active cycle, member rows with score gauges, activity feed, contextual alerts, risk distribution chart, quick action buttons. Mobile-first, real-time refresh every 15s.
 
 **Outcome:** New route `/vaquitas/[address]/dashboard` with 7 new reusable components (KPICard, CycleTimeline, MemberRow, ActivityFeed, AlertBanner, RiskDistribution, QuickActions). Three contextual views based on vaquita status. Polling-based 15s real-time updates. Link added to vaquita detail page. Adapted reads to the real contract individual getters (not the nonexistent config() tuple that the original spec assumed). Build: 8 routes compile, typecheck clean.
+
+## Feature B — Multi-language (Spanish + English) (Date: 2026-06-05)
+
+**Prompt:** Add ES/EN bilingual support to the frontend without heavy libraries. Custom React Context i18n. Detection via navigator.language with localStorage persistence. Toggle in the header. Translated landing, vaquitas list, dashboard, qr, demo. Brand terms (vaquita, MXNB, etc.) kept untranslated.
+
+**Outcome:** New web/lib/i18n/ with typed dictionaries (~150 keys x 2 languages). ES/EN toggle in header. Fallback chain: localStorage -> browser locale -> ES. QR page split into server (SVG gen) + QrContent client component for useT. Dashboard sub-components got optional title props for translation. Build: 8 routes compile, typecheck clean.

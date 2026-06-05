@@ -11,14 +11,16 @@ interface Activity {
 
 interface Props {
     activities: Activity[];
+    title?: string;
+    emptyText?: string;
 }
 
-export function ActivityFeed({ activities }: Props) {
+export function ActivityFeed({ activities, title = "Actividad reciente", emptyText = "Aún no hay actividad" }: Props) {
     if (activities.length === 0) {
         return (
             <div className="glass" style={{ padding: 24, textAlign: "center" }}>
                 <div style={{ color: "var(--text-dim)", fontSize: 14 }}>
-                    Aún no hay actividad
+                    {emptyText}
                 </div>
             </div>
         );
@@ -37,7 +39,7 @@ export function ActivityFeed({ activities }: Props) {
                 }}
             >
                 <span>📡</span>
-                Actividad reciente
+                {title}
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {activities.map((a) => (

@@ -2,9 +2,21 @@
 
 interface Props {
     scores: number[];
+    title?: string;
+    avgLabel?: string;
+    highLabel?: string;
+    midLabel?: string;
+    lowLabel?: string;
 }
 
-export function RiskDistribution({ scores }: Props) {
+export function RiskDistribution({
+    scores,
+    title = "Confianza del grupo",
+    avgLabel = "Score promedio:",
+    highLabel = "🟢 Confiables (70+)",
+    midLabel = "🟡 Moderados (40-69)",
+    lowLabel = "🔴 Riesgo (<40)",
+}: Props) {
     if (scores.length === 0) {
         return null;
     }
@@ -31,16 +43,16 @@ export function RiskDistribution({ scores }: Props) {
                 }}
             >
                 <span>🧠</span>
-                Confianza del grupo
+                {title}
             </h3>
             <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 16 }}>
-                Score promedio: <strong style={{ color: "var(--primary)" }}>{average}/100</strong>
+                {avgLabel} <strong style={{ color: "var(--primary)" }}>{average}/100</strong>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <DistRow label="🟢 Confiables (70+)" count={buckets.high} max={max} color="#00d4aa" />
-                <DistRow label="🟡 Moderados (40-69)" count={buckets.mid} max={max} color="#f59e0b" />
-                <DistRow label="🔴 Riesgo (<40)" count={buckets.low} max={max} color="#ef4444" />
+                <DistRow label={highLabel} count={buckets.high} max={max} color="#00d4aa" />
+                <DistRow label={midLabel} count={buckets.mid} max={max} color="#f59e0b" />
+                <DistRow label={lowLabel} count={buckets.low} max={max} color="#ef4444" />
             </div>
         </div>
     );

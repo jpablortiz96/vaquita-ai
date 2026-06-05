@@ -3,8 +3,10 @@
 import { Header } from "@/components/header";
 import { RiskScoreGauge } from "@/components/risk-score-gauge";
 import { useState, useEffect } from "react";
+import { useT } from "@/lib/i18n/context";
 
 export default function DemoPage() {
+    const { t } = useT();
     const [showScore, setShowScore] = useState(false);
     const [scoreValue, setScoreValue] = useState(0);
 
@@ -37,12 +39,7 @@ export default function DemoPage() {
             >
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     {/* Hero */}
-                    <section
-                        style={{
-                            textAlign: "center",
-                            padding: "40px 0",
-                        }}
-                    >
+                    <section style={{ textAlign: "center", padding: "40px 0" }}>
                         <div style={{ fontSize: 56, marginBottom: 16 }}>🐄</div>
                         <h1
                             style={{
@@ -52,31 +49,16 @@ export default function DemoPage() {
                                 marginBottom: 16,
                             }}
                         >
-                            VaquitaAI en{" "}
-                            <span className="gradient-text">acción</span>
+                            {t("demo.title.before")}
+                            <span className="gradient-text">{t("demo.title.gradient")}</span>
                         </h1>
-                        <p
-                            style={{
-                                color: "var(--text-dim)",
-                                fontSize: 18,
-                                maxWidth: 560,
-                                margin: "0 auto",
-                            }}
-                        >
-                            La primera plataforma de vaquitas onchain con IA evaluando confianza,
-                            voz en español y onboarding por WhatsApp.
+                        <p style={{ color: "var(--text-dim)", fontSize: 18, maxWidth: 560, margin: "0 auto" }}>
+                            {t("demo.subtitle")}
                         </p>
                     </section>
 
                     {/* Demo del Risk Score animado */}
-                    <section
-                        className="glass fade-in"
-                        style={{
-                            padding: 32,
-                            marginBottom: 24,
-                            textAlign: "center",
-                        }}
-                    >
+                    <section className="glass fade-in" style={{ padding: 32, marginBottom: 24, textAlign: "center" }}>
                         <div
                             style={{
                                 fontSize: 12,
@@ -87,34 +69,20 @@ export default function DemoPage() {
                                 marginBottom: 12,
                             }}
                         >
-                            ⚡ IA evaluando en tiempo real
+                            {t("demo.ai.badge")}
                         </div>
-                        <h2
-                            style={{
-                                fontSize: 24,
-                                fontWeight: 700,
-                                marginBottom: 24,
-                            }}
-                        >
-                            Esto es lo que ve un miembro de tu vaquita
+                        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}>
+                            {t("demo.ai.title")}
                         </h2>
                         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
                             <RiskScoreGauge score={scoreValue} size={220} label={showScore ? "Confiable" : "..."} />
                         </div>
-                        <p
-                            style={{
-                                color: "var(--text-dim)",
-                                fontSize: 15,
-                                maxWidth: 460,
-                                margin: "0 auto",
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            <strong style={{ color: "var(--text)" }}>María, 35 años, maestra</strong>
+                        <p style={{ color: "var(--text-dim)", fontSize: 15, maxWidth: 460, margin: "0 auto", lineHeight: 1.6 }}>
+                            <strong style={{ color: "var(--text)" }}>{t("demo.ai.exampleName")}</strong>
                             <br />
-                            Ocupación estable, ingreso comprobable, 2 años en la comunidad.
+                            {t("demo.ai.exampleDesc")}
                             <br />
-                            <strong style={{ color: "var(--primary)" }}>Posición recomendada: temprana ✓</strong>
+                            <strong style={{ color: "var(--primary)" }}>{t("demo.ai.exampleTip")}</strong>
                         </p>
                     </section>
 
@@ -132,29 +100,16 @@ export default function DemoPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-primary pulse-glow"
-                            style={{
-                                textDecoration: "none",
-                                textAlign: "center",
-                                padding: "16px 24px",
-                                fontSize: 16,
-                                display: "block",
-                            }}
+                            style={{ textDecoration: "none", textAlign: "center", padding: "16px 24px", fontSize: 16, display: "block" }}
                         >
-                            🚀 Probar por WhatsApp
+                            {t("demo.cta.whatsapp")}
                         </a>
                         <a
                             href="/vaquitas"
                             className="btn-ghost"
-                            style={{
-                                textDecoration: "none",
-                                textAlign: "center",
-                                padding: "16px 24px",
-                                fontSize: 16,
-                                display: "block",
-                                color: "var(--text)",
-                            }}
+                            style={{ textDecoration: "none", textAlign: "center", padding: "16px 24px", fontSize: 16, display: "block", color: "var(--text)" }}
                         >
-                            Ver vaquitas onchain
+                            {t("demo.cta.see")}
                         </a>
                     </section>
 
@@ -167,36 +122,12 @@ export default function DemoPage() {
                             marginBottom: 40,
                         }}
                     >
-                        <Feature
-                            icon="🤖"
-                            title="IA evalúa confianza"
-                            desc="Claude Sonnet 4.5 analiza cada miembro y sugiere orden de pagos justo"
-                        />
-                        <Feature
-                            icon="🎙️"
-                            title="Voz en español"
-                            desc="Cada notificación importante llega como audio personalizado"
-                        />
-                        <Feature
-                            icon="📱"
-                            title="WhatsApp + Web"
-                            desc="Sin descargas. Sin papeles. Funciona en cualquier celular."
-                        />
-                        <Feature
-                            icon="⛓️"
-                            title="100% onchain"
-                            desc="Smart contracts en Arbitrum. Todo verificable, todo transparente"
-                        />
-                        <Feature
-                            icon="🇲🇽"
-                            title="Pesos digitales"
-                            desc="MXNB de Bitso. Mismo valor que el peso mexicano"
-                        />
-                        <Feature
-                            icon="🛡️"
-                            title="Colateral inteligente"
-                            desc="Si alguien falla, su colateral protege al grupo"
-                        />
+                        <Feature icon="🤖" title={t("demo.f1.title")} desc={t("demo.f1.desc")} />
+                        <Feature icon="🎙️" title={t("demo.f2.title")} desc={t("demo.f2.desc")} />
+                        <Feature icon="📱" title={t("demo.f3.title")} desc={t("demo.f3.desc")} />
+                        <Feature icon="⛓️" title={t("demo.f4.title")} desc={t("demo.f4.desc")} />
+                        <Feature icon="🇲🇽" title={t("demo.f5.title")} desc={t("demo.f5.desc")} />
+                        <Feature icon="🛡️" title={t("demo.f6.title")} desc={t("demo.f6.desc")} />
                     </section>
 
                     {/* Footer */}
@@ -209,7 +140,7 @@ export default function DemoPage() {
                             borderTop: "1px solid var(--border)",
                         }}
                     >
-                        Ethereum México x Bitso Hackathon 2026 · Hecho con 🐄 para LATAM
+                        {t("footer.tagline")}
                     </footer>
                 </div>
             </main>

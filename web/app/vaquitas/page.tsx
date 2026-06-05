@@ -5,10 +5,12 @@ import { VaquitaCard } from "@/components/vaquita-card";
 import { usePrivy } from "@privy-io/react-auth";
 import { useReadContract, useReadContracts } from "wagmi";
 import { CONTRACTS, SIGNER_ADDRESS, factoryAbi, vaquitaAbi } from "@/lib/contracts";
+import { useT } from "@/lib/i18n/context";
 import type { Address } from "viem";
 
 export default function VaquitasPage() {
     const { ready, authenticated, login } = usePrivy();
+    const { t } = useT();
 
     // V1: all vaquitas are created on-chain by the bot's deployer signer (it acts
     // on behalf of WhatsApp users). We read the signer's vaquitas so the logged-in
@@ -41,12 +43,12 @@ export default function VaquitasPage() {
         return (
             <>
                 <Header />
-                <Empty title="Conecta tu cuenta">
+                <Empty title={t("vaquitas.connect.title")}>
                     <p style={{ color: "var(--text-dim)", marginBottom: 16 }}>
-                        Inicia sesión para ver y crear tus vaquitas.
+                        {t("vaquitas.connect.desc")}
                     </p>
                     <button className="btn-primary" onClick={() => login()}>
-                        Conectar
+                        {t("header.connect")}
                     </button>
                 </Empty>
             </>
@@ -58,16 +60,16 @@ export default function VaquitasPage() {
             <Header />
             <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
                 <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>
-                    Tus <span className="gradient-text">vaquitas</span>
+                    {t("vaquitas.title.before")}<span className="gradient-text">{t("vaquitas.title.gradient")}</span>
                 </h1>
 
                 {list.length === 0 ? (
-                    <Empty title="Aún no tienes vaquitas">
+                    <Empty title={t("vaquitas.empty.title")}>
                         <p style={{ color: "var(--text-dim)", marginBottom: 16 }}>
-                            Crea una desde WhatsApp escribiendo &ldquo;hacer una vaquita&rdquo;.
+                            {t("vaquitas.empty.desc")}
                         </p>
                         <a className="btn-primary" href="https://wa.me/14155238886?text=hacer+una+vaquita" target="_blank">
-                            Abrir WhatsApp
+                            {t("vaquitas.empty.cta")}
                         </a>
                     </Empty>
                 ) : (

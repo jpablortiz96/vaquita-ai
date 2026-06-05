@@ -541,3 +541,35 @@ contract has no config() tuple getter.
 - Member names are placeholders ("Miembro 1"); V2 will pull from agent API
 - Member scores are pseudo-deterministic from addresses; V2 = real Claude scores
 - Activity feed is mocked; V2 will read real onchain events via viem watchContractEvent
+
+## 24. Internationalization (Feature B)
+
+### Architecture
+Lightweight custom i18n via React Context (no next-intl, no react-intl).
+
+### Files
+- `web/lib/i18n/dictionaries.ts` — All translations in 2 dictionaries (es, en)
+- `web/lib/i18n/context.tsx` — I18nProvider + useT() hook
+- `web/components/language-toggle.tsx` — UI toggle in the header
+
+### Detection priority
+1. localStorage (`vaquita-locale` key)
+2. navigator.language (default falls to ES if not English)
+3. Final fallback: ES
+
+### Translated pages
+- Landing (`/`), Vaquitas list (`/vaquitas`), Dashboard (`/vaquitas/[address]/dashboard`), QR (`/qr`), Demo (`/demo`)
+
+### NOT translated (intentional)
+- `/join/[code]` — invitation flow is Spanish-only (LATAM target)
+- `/vaquitas/[address]` (detail) — quick MVP, V2 will translate
+- The word "vaquita" itself, plus "MXNB", "Arbitrum", "Bitso" — proper nouns
+
+### Server/client split for /qr
+The QR page generates the SVG server-side (qrcode package) and delegates all
+translated text to a QrContent client component (useT lives client-side only).
+
+### Dashboard sub-components
+CycleTimeline, RiskDistribution, ActivityFeed, QuickActions take optional title
+props (Spanish defaults) so the dashboard can pass translated strings without
+making each component import the i18n context.

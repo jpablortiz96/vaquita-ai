@@ -9,9 +9,10 @@ interface Action {
 
 interface Props {
     actions: Action[];
+    title?: string;
 }
 
-export function QuickActions({ actions }: Props) {
+export function QuickActions({ actions, title = "Acciones rápidas" }: Props) {
     return (
         <div className="glass" style={{ padding: 20 }}>
             <h3
@@ -25,7 +26,7 @@ export function QuickActions({ actions }: Props) {
                 }}
             >
                 <span>⚡</span>
-                Acciones rápidas
+                {title}
             </h3>
             <div
                 style={{

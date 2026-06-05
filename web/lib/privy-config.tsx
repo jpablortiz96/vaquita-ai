@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { arbitrumSepolia } from "viem/chains";
 import { http } from "wagmi";
 import type { ReactNode } from "react";
+import { I18nProvider } from "./i18n/context";
 
 const queryClient = new QueryClient();
 
@@ -24,22 +25,24 @@ export function Providers({ children }: { children: ReactNode }) {
         );
     }
     return (
-        <PrivyProvider
-            appId={appId}
-            config={{
-                loginMethods: ["email", "google", "twitter"],
-                appearance: {
-                    theme: "dark",
-                    accentColor: "#00d4aa",
-                },
-                embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
-                defaultChain: arbitrumSepolia,
-                supportedChains: [arbitrumSepolia],
-            }}
-        >
-            <QueryClientProvider client={queryClient}>
-                <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
-            </QueryClientProvider>
-        </PrivyProvider>
+        <I18nProvider>
+            <PrivyProvider
+                appId={appId}
+                config={{
+                    loginMethods: ["email", "google", "twitter"],
+                    appearance: {
+                        theme: "dark",
+                        accentColor: "#00d4aa",
+                    },
+                    embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
+                    defaultChain: arbitrumSepolia,
+                    supportedChains: [arbitrumSepolia],
+                }}
+            >
+                <QueryClientProvider client={queryClient}>
+                    <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
+                </QueryClientProvider>
+            </PrivyProvider>
+        </I18nProvider>
     );
 }

@@ -9,9 +9,10 @@ interface Cycle {
 
 interface Props {
     cycles: Cycle[];
+    title?: string;
 }
 
-export function CycleTimeline({ cycles }: Props) {
+export function CycleTimeline({ cycles, title = "Timeline de ciclos" }: Props) {
     return (
         <div className="glass" style={{ padding: 20 }}>
             <h3
@@ -25,7 +26,7 @@ export function CycleTimeline({ cycles }: Props) {
                 }}
             >
                 <span>📅</span>
-                Timeline de ciclos
+                {title}
             </h3>
             <div
                 style={{

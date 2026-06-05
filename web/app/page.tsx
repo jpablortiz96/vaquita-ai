@@ -6,9 +6,11 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useReadContract } from "wagmi";
 import { CONTRACTS, factoryAbi } from "@/lib/contracts";
 import { useState, useEffect } from "react";
+import { useT } from "@/lib/i18n/context";
 
 export default function HomePage() {
     const { authenticated } = usePrivy();
+    const { t } = useT();
 
     const { data: totalVaquitas } = useReadContract({
         address: CONTRACTS.VaquitaFactory,
@@ -36,7 +38,7 @@ export default function HomePage() {
             <Header />
             <main style={{ minHeight: "100vh", padding: "0 24px" }}>
 
-                {/* ─── HERO — Historia, no tecnología ─── */}
+                {/* ─── HERO ─── */}
                 <section
                     style={{
                         maxWidth: 1100,
@@ -54,9 +56,9 @@ export default function HomePage() {
                             marginBottom: 20,
                         }}
                     >
-                        Ahorra con tu familia.
+                        {t("landing.hero.title.before")}
                         <br />
-                        <span className="gradient-text">Sin papeles. Sin trampas.</span>
+                        <span className="gradient-text">{t("landing.hero.title.gradient")}</span>
                     </h1>
                     <p
                         style={{
@@ -67,14 +69,13 @@ export default function HomePage() {
                             lineHeight: 1.6,
                         }}
                     >
-                        La vaquita de toda la vida, pero ahora con un cuaderno que nunca se pierde
-                        y una inteligencia que cuida de todos los miembros.
+                        {t("landing.hero.subtitle")}
                     </p>
 
                     <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
                         {authenticated ? (
                             <a href="/vaquitas" className="btn-primary">
-                                Ver mis vaquitas
+                                {t("landing.hero.cta.mine")}
                             </a>
                         ) : (
                             <a
@@ -84,26 +85,21 @@ export default function HomePage() {
                                 className="btn-primary pulse-glow"
                                 style={{ textDecoration: "none", display: "inline-block" }}
                             >
-                                🚀 Empezar gratis por WhatsApp
+                                🚀 {t("landing.hero.cta.start")}
                             </a>
                         )}
                         <a href="#como-funciona" className="btn-ghost">
-                            ¿Cómo funciona?
+                            {t("landing.hero.cta.howItWorks")}
                         </a>
                     </div>
 
                     <p style={{ fontSize: 14, color: "var(--text-dim)" }}>
-                        🇲🇽 Hecho en México · Sin descargas · Funciona en cualquier celular
+                        {t("landing.hero.footer")}
                     </p>
                 </section>
 
-                {/* ─── ANTES vs AHORA — La narrativa emocional ─── */}
-                <section
-                    style={{
-                        maxWidth: 1100,
-                        margin: "0 auto 80px",
-                    }}
-                >
+                {/* ─── ANTES vs AHORA ─── */}
+                <section style={{ maxWidth: 1100, margin: "0 auto 80px" }}>
                     <h2
                         style={{
                             fontSize: "clamp(28px, 5vw, 40px)",
@@ -112,17 +108,10 @@ export default function HomePage() {
                             marginBottom: 12,
                         }}
                     >
-                        ¿Te suena familiar?
+                        {t("landing.compare.title")}
                     </h2>
-                    <p
-                        style={{
-                            color: "var(--text-dim)",
-                            textAlign: "center",
-                            marginBottom: 40,
-                            fontSize: 17,
-                        }}
-                    >
-                        Las tandas, vaquitas y cundinas son tradición. Pero también vienen con problemas.
+                    <p style={{ color: "var(--text-dim)", textAlign: "center", marginBottom: 40, fontSize: 17 }}>
+                        {t("landing.compare.subtitle")}
                     </p>
 
                     <div
@@ -133,14 +122,7 @@ export default function HomePage() {
                         }}
                     >
                         {/* ANTES card */}
-                        <div
-                            className="glass"
-                            style={{
-                                padding: 32,
-                                position: "relative",
-                                border: "1px solid rgba(239, 68, 68, 0.2)",
-                            }}
-                        >
+                        <div className="glass" style={{ padding: 32, position: "relative", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
                             <div
                                 style={{
                                     display: "inline-block",
@@ -154,29 +136,22 @@ export default function HomePage() {
                                     marginBottom: 16,
                                 }}
                             >
-                                📓 ANTES
+                                📓 {t("landing.compare.before.badge")}
                             </div>
                             <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>
-                                La vaquita del cuaderno
+                                {t("landing.compare.before.title")}
                             </h3>
                             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
-                                <BadItem text='"¿Quién recibe este mes?" Nadie se acuerda.' />
-                                <BadItem text='"Pedro desapareció con el dinero." 😱' />
-                                <BadItem text='"Yo ya te di mi parte." Discusiones eternas.' />
-                                <BadItem text='"Hay que reunirse en persona." Imposible si vives lejos.' />
-                                <BadItem text="Sin protección si alguien deja de pagar." />
+                                <BadItem text={t("landing.compare.before.item1")} />
+                                <BadItem text={t("landing.compare.before.item2")} />
+                                <BadItem text={t("landing.compare.before.item3")} />
+                                <BadItem text={t("landing.compare.before.item4")} />
+                                <BadItem text={t("landing.compare.before.item5")} />
                             </ul>
                         </div>
 
                         {/* AHORA card */}
-                        <div
-                            className="glass"
-                            style={{
-                                padding: 32,
-                                position: "relative",
-                                border: "1px solid rgba(0, 212, 170, 0.3)",
-                            }}
-                        >
+                        <div className="glass" style={{ padding: 32, position: "relative", border: "1px solid rgba(0, 212, 170, 0.3)" }}>
                             <div
                                 style={{
                                     display: "inline-block",
@@ -190,87 +165,41 @@ export default function HomePage() {
                                     marginBottom: 16,
                                 }}
                             >
-                                ✨ AHORA con VaquitaAI
+                                ✨ {t("landing.compare.after.badge")}
                             </div>
                             <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>
-                                Tu vaquita por WhatsApp
+                                {t("landing.compare.after.title")}
                             </h3>
                             <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 12 }}>
-                                <GoodItem text="Un asistente te recuerda quién recibe cada mes." />
-                                <GoodItem text="Nadie puede desaparecer con la plata. Está protegida." />
-                                <GoodItem text="Cada aporte y cobro queda registrado para siempre." />
-                                <GoodItem text="Tu familia participa desde su WhatsApp, donde estén." />
-                                <GoodItem text="Si alguien falla, su colateral cuida al grupo." />
+                                <GoodItem text={t("landing.compare.after.item1")} />
+                                <GoodItem text={t("landing.compare.after.item2")} />
+                                <GoodItem text={t("landing.compare.after.item3")} />
+                                <GoodItem text={t("landing.compare.after.item4")} />
+                                <GoodItem text={t("landing.compare.after.item5")} />
                             </ul>
                         </div>
                     </div>
                 </section>
 
-                {/* ─── COMO FUNCIONA — 4 pasos simples ─── */}
-                <section
-                    id="como-funciona"
-                    style={{
-                        maxWidth: 1100,
-                        margin: "0 auto 80px",
-                        scrollMarginTop: 80,
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: "clamp(28px, 5vw, 40px)",
-                            fontWeight: 800,
-                            textAlign: "center",
-                            marginBottom: 12,
-                        }}
-                    >
-                        Así funciona, <span className="gradient-text">paso a paso</span>
+                {/* ─── COMO FUNCIONA ─── */}
+                <section id="como-funciona" style={{ maxWidth: 1100, margin: "0 auto 80px", scrollMarginTop: 80 }}>
+                    <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 800, textAlign: "center", marginBottom: 12 }}>
+                        {t("landing.how.title")}
+                        <span className="gradient-text">{t("landing.how.titleGradient")}</span>
                     </h2>
-                    <p
-                        style={{
-                            color: "var(--text-dim)",
-                            textAlign: "center",
-                            marginBottom: 48,
-                            fontSize: 17,
-                        }}
-                    >
-                        En menos de 5 minutos tienes tu primera vaquita digital lista.
+                    <p style={{ color: "var(--text-dim)", textAlign: "center", marginBottom: 48, fontSize: 17 }}>
+                        {t("landing.how.subtitle")}
                     </p>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                            gap: 24,
-                        }}
-                    >
-                        <StepCard
-                            n="1"
-                            emoji="📱"
-                            title="Mandas un WhatsApp"
-                            desc='Le escribes a VaquitaAI: "quiero hacer una vaquita de 500 al mes con 4 amigos"'
-                        />
-                        <StepCard
-                            n="2"
-                            emoji="👥"
-                            title="Invitas a tus amigos"
-                            desc="Cada amigo recibe un código. Se une desde su propio WhatsApp, sin descargar nada."
-                        />
-                        <StepCard
-                            n="3"
-                            emoji="🤖"
-                            title="La IA decide un orden justo"
-                            desc="Un asistente inteligente conoce a tus amigos y propone quién recibe primero."
-                        />
-                        <StepCard
-                            n="4"
-                            emoji="💰"
-                            title="Cada mes alguien recibe"
-                            desc="VaquitaAI les avisa por audio en español a cada miembro cuando le toca."
-                        />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
+                        <StepCard n="1" emoji="📱" title={t("landing.how.step1.title")} desc={t("landing.how.step1.desc")} />
+                        <StepCard n="2" emoji="👥" title={t("landing.how.step2.title")} desc={t("landing.how.step2.desc")} />
+                        <StepCard n="3" emoji="🤖" title={t("landing.how.step3.title")} desc={t("landing.how.step3.desc")} />
+                        <StepCard n="4" emoji="💰" title={t("landing.how.step4.title")} desc={t("landing.how.step4.desc")} />
                     </div>
                 </section>
 
-                {/* ─── IA TRUST — La sección humanizada ─── */}
+                {/* ─── IA TRUST ─── */}
                 <section
                     className="glass fade-in"
                     style={{
@@ -293,93 +222,68 @@ export default function HomePage() {
                                 fontWeight: 700,
                             }}
                         >
-                            ✨ Un asistente cuida tu vaquita
+                            {t("landing.ai.badge")}
                         </span>
                         <h2 style={{ fontSize: "clamp(28px, 4vw, 36px)", fontWeight: 800, marginTop: 8, marginBottom: 16 }}>
-                            La IA <span className="gradient-text">conoce a tus amigos</span>
+                            {t("landing.ai.title.before")}
+                            <span className="gradient-text">{t("landing.ai.title.gradient")}</span>
                         </h2>
                         <p style={{ color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 20, fontSize: 16 }}>
-                            Cuando alguien quiere unirse a tu vaquita, le hace 4 preguntas amigables sobre
-                            su trabajo y cuánto tiempo lleva en la comunidad. Después calcula qué tan
-                            confiable es y sugiere en qué orden debería recibir.
+                            {t("landing.ai.desc1")}
                         </p>
                         <p style={{ color: "var(--text-dim)", lineHeight: 1.7, marginBottom: 24, fontSize: 16 }}>
-                            <strong style={{ color: "var(--text)" }}>Lo mejor:</strong> tú decides al final.
-                            La IA solo te ayuda a ver más claro, pero la última palabra es tuya.
+                            <strong style={{ color: "var(--text)" }}>{t("landing.ai.descBold")}</strong> {t("landing.ai.desc2")}
                         </p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            <BulletPoint>Sin pedir tu historial bancario.</BulletPoint>
-                            <BulletPoint>Sin papeles, sin firmas.</BulletPoint>
-                            <BulletPoint>Razones claras y entendibles.</BulletPoint>
+                            <BulletPoint>{t("landing.ai.point1")}</BulletPoint>
+                            <BulletPoint>{t("landing.ai.point2")}</BulletPoint>
+                            <BulletPoint>{t("landing.ai.point3")}</BulletPoint>
                         </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
                         <RiskScoreGauge score={animatedScore} size={240} label={animatedScore >= 80 ? "Confiable" : "..."} />
                         <div style={{ textAlign: "center" }}>
-                            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>María, 35</p>
+                            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{t("landing.ai.example.name")}</p>
                             <p style={{ color: "var(--text-dim)", fontSize: 14 }}>
-                                Maestra · 2 años en el grupo · Ingreso estable
+                                {t("landing.ai.example.role")}
                             </p>
                             <p style={{ color: "var(--primary)", fontSize: 13, marginTop: 8, fontWeight: 600 }}>
-                                💡 Recomendación: Le toca temprano
+                                {t("landing.ai.example.tip")}
                             </p>
                         </div>
                     </div>
                 </section>
 
                 {/* ─── TESTIMONIOS ─── */}
-                <section
-                    style={{
-                        maxWidth: 1100,
-                        margin: "0 auto 80px",
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: "clamp(28px, 5vw, 40px)",
-                            fontWeight: 800,
-                            textAlign: "center",
-                            marginBottom: 48,
-                        }}
-                    >
-                        Hecho para <span className="gradient-text">familias mexicanas</span>
+                <section style={{ maxWidth: 1100, margin: "0 auto 80px" }}>
+                    <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 800, textAlign: "center", marginBottom: 48 }}>
+                        {t("landing.testimonials.title")}
+                        <span className="gradient-text">{t("landing.testimonials.titleGradient")}</span>
                     </h2>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                            gap: 24,
-                        }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
                         <Testimonial
-                            quote="Llevábamos la vaquita en un cuaderno. Mi prima lo perdió y se armó la discusión. Con esto ya no hay manera de equivocarse."
-                            name="Doña Carmen, 58"
-                            role="Cundina familiar · Querétaro"
+                            quote={t("landing.testimonials.t1.quote")}
+                            name={t("landing.testimonials.t1.name")}
+                            role={t("landing.testimonials.t1.role")}
                         />
                         <Testimonial
-                            quote="Estaba en una tanda con compañeros del trabajo. Uno renunció y se llevó el bote. Lo bueno de aquí es que ya no puede pasar eso."
-                            name="Roberto, 32"
-                            role="Tanda de oficina · CDMX"
+                            quote={t("landing.testimonials.t2.quote")}
+                            name={t("landing.testimonials.t2.name")}
+                            role={t("landing.testimonials.t2.role")}
                         />
                         <Testimonial
-                            quote="La parte que me encantó es que llega un audio cuando me toca recibir. Hasta mi mamá lo entendió a la primera."
-                            name="Sofía, 28"
-                            role="Vaquita de amigas · Guadalajara"
+                            quote={t("landing.testimonials.t3.quote")}
+                            name={t("landing.testimonials.t3.name")}
+                            role={t("landing.testimonials.t3.role")}
                         />
                     </div>
                 </section>
 
-                {/* ─── STATS — Humanizadas ─── */}
-                <section
-                    style={{
-                        maxWidth: 900,
-                        margin: "0 auto 80px",
-                        textAlign: "center",
-                    }}
-                >
+                {/* ─── STATS ─── */}
+                <section style={{ maxWidth: 900, margin: "0 auto 80px", textAlign: "center" }}>
                     <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: "var(--text-dim)" }}>
-                        Construido con cuidado
+                        {t("landing.stats.title")}
                     </h2>
                     <div
                         style={{
@@ -389,38 +293,22 @@ export default function HomePage() {
                             marginTop: 24,
                         }}
                     >
-                        <StatHuman
-                            value={totalVaquitas?.toString() ?? "—"}
-                            label="Vaquitas creadas"
-                            sub="en demos y pruebas"
-                        />
-                        <StatHuman value="100%" label="Tu dinero" sub="nunca se pierde" />
-                        <StatHuman value="0" label="Bancos" sub="involucrados" />
-                        <StatHuman value="24/7" label="WhatsApp" sub="siempre disponible" />
+                        <StatHuman value={totalVaquitas?.toString() ?? "—"} label={t("landing.stats.vaquitas")} sub={t("landing.stats.vaquitasSub")} />
+                        <StatHuman value="100%" label={t("landing.stats.money")} sub={t("landing.stats.moneySub")} />
+                        <StatHuman value="0" label={t("landing.stats.banks")} sub={t("landing.stats.banksSub")} />
+                        <StatHuman value="24/7" label={t("landing.stats.whatsapp")} sub={t("landing.stats.whatsappSub")} />
                     </div>
                 </section>
 
                 {/* ─── CTA FINAL ─── */}
-                <section
-                    style={{
-                        maxWidth: 700,
-                        margin: "0 auto 80px",
-                        textAlign: "center",
-                        padding: "48px 24px",
-                    }}
-                    className="glass"
-                >
-                    <h2
-                        style={{
-                            fontSize: "clamp(28px, 5vw, 40px)",
-                            fontWeight: 800,
-                            marginBottom: 16,
-                        }}
-                    >
-                        ¿Listo para tu <span className="gradient-text">primera vaquita digital</span>?
+                <section style={{ maxWidth: 700, margin: "0 auto 80px", textAlign: "center", padding: "48px 24px" }} className="glass">
+                    <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 800, marginBottom: 16 }}>
+                        {t("landing.cta.title.before")}
+                        <span className="gradient-text">{t("landing.cta.titleGradient")}</span>
+                        {t("landing.cta.title.after")}
                     </h2>
                     <p style={{ color: "var(--text-dim)", marginBottom: 28, fontSize: 17 }}>
-                        Toma menos tiempo que pedir un café. Y dura para siempre.
+                        {t("landing.cta.subtitle")}
                     </p>
                     <a
                         href="https://wa.me/14155238886?text=join%20till-breathing"
@@ -429,20 +317,15 @@ export default function HomePage() {
                         className="btn-primary pulse-glow"
                         style={{ textDecoration: "none", display: "inline-block", fontSize: 17, padding: "16px 32px" }}
                     >
-                        🚀 Empezar gratis por WhatsApp
+                        🚀 {t("landing.cta.button")}
                     </a>
                     <p style={{ marginTop: 16, fontSize: 13, color: "var(--text-dim)" }}>
-                        No pedimos tarjeta · No descargas apps · Funciona ya
+                        {t("landing.cta.footer")}
                     </p>
                 </section>
 
-                {/* ─── TECNOLOGÍA (sutil, para jueces) ─── */}
-                <section
-                    style={{
-                        maxWidth: 900,
-                        margin: "0 auto 60px",
-                    }}
-                >
+                {/* ─── TECNOLOGÍA ─── */}
+                <section style={{ maxWidth: 900, margin: "0 auto 60px" }}>
                     <details className="glass" style={{ padding: 24 }}>
                         <summary
                             style={{
@@ -454,34 +337,39 @@ export default function HomePage() {
                                 textTransform: "uppercase",
                             }}
                         >
-                            🔧 Para curiosos: ¿Cómo está hecho?
+                            {t("landing.tech.summary")}
                         </summary>
                         <div style={{ marginTop: 20, color: "var(--text-dim)", lineHeight: 1.7, fontSize: 14 }}>
                             <p style={{ marginBottom: 12 }}>
-                                VaquitaAI corre sobre <strong style={{ color: "var(--text)" }}>Arbitrum</strong>, una
-                                red blockchain rápida y barata. Cada vaquita es un{" "}
-                                <em>contrato inteligente</em>: un acuerdo escrito en código que se ejecuta solo
-                                y no se puede romper.
+                                {t("landing.tech.p1.before")}
+                                <strong style={{ color: "var(--text)" }}>{t("landing.tech.p1.bold1")}</strong>
+                                {t("landing.tech.p1.middle")}
+                                <em>{t("landing.tech.p1.em")}</em>
+                                {t("landing.tech.p1.after")}
                             </p>
                             <p style={{ marginBottom: 12 }}>
-                                Las contribuciones se hacen en <strong style={{ color: "var(--text)" }}>MXNB</strong>,
-                                pesos digitales emitidos por <strong style={{ color: "var(--text)" }}>Bitso</strong>{" "}
-                                con respaldo 1:1 al peso mexicano. Tu dinero nunca cambia de valor.
+                                {t("landing.tech.p2.before")}
+                                <strong style={{ color: "var(--text)" }}>{t("landing.tech.p2.bold1")}</strong>
+                                {t("landing.tech.p2.middle")}
+                                <strong style={{ color: "var(--text)" }}>{t("landing.tech.p2.bold2")}</strong>
+                                {t("landing.tech.p2.after")}
                             </p>
                             <p style={{ marginBottom: 12 }}>
-                                La inteligencia que evalúa miembros es <strong style={{ color: "var(--text)" }}>Claude Sonnet 4.5</strong>{" "}
-                                de Anthropic. Las notificaciones de voz usan{" "}
-                                <strong style={{ color: "var(--text)" }}>ElevenLabs</strong> para sonar humanas.
+                                {t("landing.tech.p3.before")}
+                                <strong style={{ color: "var(--text)" }}>{t("landing.tech.p3.bold1")}</strong>
+                                {t("landing.tech.p3.middle")}
+                                <strong style={{ color: "var(--text)" }}>{t("landing.tech.p3.bold2")}</strong>
+                                {t("landing.tech.p3.after")}
                             </p>
                             <p>
-                                Todo el código es open source y verificable. Mira nuestros contratos en{" "}
+                                {t("landing.tech.p4.before")}
                                 <a
                                     href="https://sepolia.arbiscan.io/address/0xfFa51C1A2c2BDCA722045CB637D1b36E1bE6892E"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{ textDecoration: "underline" }}
                                 >
-                                    Arbiscan ↗
+                                    {t("landing.tech.p4.link")} ↗
                                 </a>
                                 .
                             </p>
@@ -499,7 +387,7 @@ export default function HomePage() {
                         borderTop: "1px solid var(--border)",
                     }}
                 >
-                    🐄 Hecho con cariño en LATAM · Ethereum México x Bitso Hackathon 2026
+                    {t("footer.tagline")}
                 </footer>
             </main>
         </>

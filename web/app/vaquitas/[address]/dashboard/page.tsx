@@ -11,12 +11,15 @@ import { QuickActions } from "@/components/quick-actions";
 import { useReadContracts } from "wagmi";
 import { vaquitaAbi } from "@/lib/contracts";
 import { formatMXNB, shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n/context";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 import type { Address } from "viem";
 import { use, useEffect } from "react";
 
 export default function DashboardPage({ params }: { params: Promise<{ address: string }> }) {
     const { address } = use(params);
     const vaquitaAddr = address as Address;
+    const { t } = useT();
 
     // The Vaquita contract exposes individual public getters (no config tuple).
     const { data, refetch } = useReadContracts({
@@ -97,10 +100,11 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
         totalMembers: totalMembersNum,
         currentCycle,
         cycleDays,
+        t,
     });
 
     // Quick actions
-    const actions = buildActions({ status, vaquitaAddress: vaquitaAddr, members, totalMembers: totalMembersNum });
+    const actions = buildActions({ status, vaquitaAddress: vaquitaAddr, members, totalMembers: totalMembersNum, t });
 
     // Mock activity feed (V1; V2 = real onchain events)
     const activities = buildMockActivity({ members, status });
@@ -113,7 +117,7 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
             <main style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px" }}>
                 {/* Breadcrumb */}
                 <a href="/vaquitas" style={{ color: "var(--text-dim)", fontSize: 13 }}>
-                    ← Mis vaquitas
+                    {t("dash.back")}
                 </a>
 
                 {/* Header */}
@@ -128,11 +132,11 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
                         🐄 {vaquitaName}
                     </h1>
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, fontSize: 13, color: "var(--text-dim)" }}>
-                        <StatusBadge status={status} />
+                        <StatusBadge status={status} t={t} />
                         <span>·</span>
-                        <span>{members.length}/{totalMembersNum} miembros</span>
+                        <span>{members.length}/{totalMembersNum} · {t("dash.members.title")}</span>
                         <span>·</span>
-                        <span>Ciclo {currentCycle || 0}/{totalMembersNum}</span>
+                        <span>{t("dash.kpi.cycle")} {currentCycle || 0}/{totalMembersNum}</span>
                         <span>·</span>
                         <a
                             href={`https://sepolia.arbiscan.io/address/${vaquitaAddr}`}
@@ -140,7 +144,7 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
                             rel="noopener noreferrer"
                             style={{ fontSize: 12 }}
                         >
-                            Ver onchain ↗
+                            {t("dash.actions.onchain")} ↗
                         </a>
                     </div>
                 </div>
@@ -164,30 +168,30 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
                     }}
                 >
                     <KPICard
-                        label="Pool total"
+                        label={t("dash.kpi.pool")}
                         value={parseFloat(totalPool.replace(/,/g, ""))}
-                        subValue={`MXNB · Aporte: ${contributionStr}`}
+                        subValue={`MXNB · ${contributionStr}`}
                         icon="💰"
                         color="primary"
                     />
                     <KPICard
-                        label="Puntualidad"
+                        label={t("dash.kpi.punctuality")}
                         value={status === 1 ? 100 : 0}
-                        subValue={status === 1 ? "0 retrasos" : "Aún no arranca"}
+                        subValue={status === 1 ? "100%" : "—"}
                         icon="✅"
                         color="primary"
                     />
                     <KPICard
-                        label="Ciclo cada"
+                        label={t("dash.kpi.cycle")}
                         value={cycleDays}
-                        subValue="días"
+                        subValue={t("dash.kpi.cycleDays")}
                         icon="📅"
                         color="accent"
                     />
                     <KPICard
-                        label="Confianza promedio"
+                        label={t("dash.kpi.confidence")}
                         value={memberScores.length > 0 ? Math.round(memberScores.reduce((a, b) => a + b, 0) / memberScores.length) : 0}
-                        subValue="Score IA del grupo"
+                        subValue={t("dash.kpi.scoreSub")}
                         icon="🧠"
                         color="primary"
                     />
@@ -196,7 +200,7 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
                 {/* Timeline */}
                 {status === 1 && (
                     <div style={{ marginBottom: 24 }}>
-                        <CycleTimeline cycles={cycles} />
+                        <CycleTimeline cycles={cycles} title={t("dash.timeline.title")} />
                     </div>
                 )}
 
@@ -223,11 +227,11 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
                             }}
                         >
                             <span>👥</span>
-                            Miembros ({members.length}/{totalMembersNum})
+                            {t("dash.members.title")} ({members.length}/{totalMembersNum})
                         </h3>
                         {members.length === 0 ? (
                             <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 20 }}>
-                                Aún no hay miembros. Comparte el código de invitación desde WhatsApp.
+                                {t("dash.members.empty")}
                             </p>
                         ) : (
                             members.map((m, i) => (
@@ -262,18 +266,27 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
 
                     {/* Side panel: distribution + actions */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        {memberScores.length > 0 && <RiskDistribution scores={memberScores} />}
-                        <QuickActions actions={actions} />
+                        {memberScores.length > 0 && (
+                            <RiskDistribution
+                                scores={memberScores}
+                                title={t("dash.risk.title")}
+                                avgLabel={t("dash.risk.avg")}
+                                highLabel={t("dash.risk.high")}
+                                midLabel={t("dash.risk.mid")}
+                                lowLabel={t("dash.risk.low")}
+                            />
+                        )}
+                        <QuickActions actions={actions} title={t("dash.actions.title")} />
                     </div>
                 </div>
 
                 {/* Activity Feed */}
-                <ActivityFeed activities={activities} />
+                <ActivityFeed activities={activities} title={t("dash.activity.title")} emptyText={t("dash.activity.empty")} />
 
                 {/* Footer */}
                 <div style={{ marginTop: 32, textAlign: "center", padding: 16 }}>
                     <p style={{ fontSize: 12, color: "var(--text-dim)" }}>
-                        Dashboard actualizado en tiempo real desde Arbitrum Sepolia
+                        {t("dash.footer")}
                     </p>
                 </div>
             </main>
@@ -289,13 +302,15 @@ export default function DashboardPage({ params }: { params: Promise<{ address: s
     );
 }
 
-function StatusBadge({ status }: { status: number }) {
+type TFn = (key: TranslationKey) => string;
+
+function StatusBadge({ status, t }: { status: number; t: TFn }) {
     const config = {
-        0: { label: "Esperando miembros", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)" },
-        1: { label: "Activa", color: "var(--primary)", bg: "rgba(0, 212, 170, 0.15)" },
-        2: { label: "Completada", color: "var(--accent)", bg: "rgba(168, 85, 247, 0.15)" },
-        3: { label: "Cancelada", color: "#ef4444", bg: "rgba(239, 68, 68, 0.15)" },
-    }[status] ?? { label: "Desconocido", color: "var(--text-dim)", bg: "var(--surface)" };
+        0: { label: t("dash.status.created"), color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)" },
+        1: { label: t("dash.status.active"), color: "var(--primary)", bg: "rgba(0, 212, 170, 0.15)" },
+        2: { label: t("dash.status.completed"), color: "var(--accent)", bg: "rgba(168, 85, 247, 0.15)" },
+        3: { label: t("dash.status.cancelled"), color: "#ef4444", bg: "rgba(239, 68, 68, 0.15)" },
+    }[status] ?? { label: "—", color: "var(--text-dim)", bg: "var(--surface)" };
 
     return (
         <span
@@ -314,52 +329,51 @@ function StatusBadge({ status }: { status: number }) {
     );
 }
 
-function buildAlerts(args: { status: number; currentMembers: number; totalMembers: number; currentCycle: number; cycleDays: number }) {
+function buildAlerts(args: { status: number; currentMembers: number; totalMembers: number; currentCycle: number; cycleDays: number; t: TFn }) {
+    const { t } = args;
     const alerts: Array<{ type: "info" | "warning" | "success" | "danger"; title: string; description?: string; action?: { label: string; href: string } }> = [];
 
     if (args.status === 0) {
         if (args.currentMembers < args.totalMembers) {
             alerts.push({
                 type: "warning",
-                title: `Faltan ${args.totalMembers - args.currentMembers} miembros para arrancar`,
-                description: "Comparte el código de invitación desde WhatsApp para que tus amigos se unan.",
-                action: { label: "Abrir WhatsApp", href: "https://wa.me/14155238886?text=invitar" },
+                title: `${t("dash.actions.invite")} (${args.totalMembers - args.currentMembers})`,
+                description: t("dash.members.empty"),
+                action: { label: t("dash.actions.whatsapp"), href: "https://wa.me/14155238886?text=invitar" },
             });
         } else {
             alerts.push({
                 type: "success",
-                title: "¡Todos los miembros están dentro!",
-                description: 'La vaquita está lista para arrancar. Escribe "arrancar" en WhatsApp.',
-                action: { label: "Arrancar vaquita", href: "https://wa.me/14155238886?text=arrancar" },
+                title: t("dash.actions.start"),
+                action: { label: t("dash.actions.start"), href: "https://wa.me/14155238886?text=arrancar" },
             });
         }
     } else if (args.status === 1) {
         alerts.push({
             type: "info",
-            title: `Ciclo ${args.currentCycle} en curso`,
-            description: `El próximo cobro será en aproximadamente ${args.cycleDays} días. El bot enviará un mensaje de voz cuando le toque al miembro.`,
+            title: `${t("dash.kpi.cycle")} ${args.currentCycle}`,
         });
     } else if (args.status === 2) {
         alerts.push({
             type: "success",
-            title: "🎉 ¡Vaquita completada exitosamente!",
-            description: "Todos los miembros recibieron su turno. Ya pueden reclamar su colateral.",
+            title: `🎉 ${t("dash.status.completed")}`,
         });
     }
 
     return alerts;
 }
 
-function buildActions(args: { status: number; vaquitaAddress: Address; members: readonly Address[]; totalMembers: number }) {
+function buildActions(args: { status: number; vaquitaAddress: Address; members: readonly Address[]; totalMembers: number; t: TFn }) {
+    const { t } = args;
     const base = [
         {
             icon: "💬",
-            label: "Abrir WhatsApp",
+            label: t("dash.actions.whatsapp"),
             href: "https://wa.me/14155238886?text=mis%20vaquitas",
         },
         {
             icon: "🔗",
-            label: "Ver onchain",
+            label: t("dash.actions.onchain"),
             href: `https://sepolia.arbiscan.io/address/${args.vaquitaAddress}`,
         },
     ];
@@ -368,12 +382,12 @@ function buildActions(args: { status: number; vaquitaAddress: Address; members: 
         return [
             {
                 icon: "👥",
-                label: "Invitar miembros",
+                label: t("dash.actions.invite"),
                 href: "https://wa.me/14155238886?text=invitar",
                 primary: true,
             },
             ...(args.members.length === args.totalMembers
-                ? [{ icon: "🚀", label: "Arrancar", href: "https://wa.me/14155238886?text=arrancar", primary: true }]
+                ? [{ icon: "🚀", label: t("dash.actions.start"), href: "https://wa.me/14155238886?text=arrancar", primary: true }]
                 : []),
             ...base,
         ];
@@ -381,7 +395,7 @@ function buildActions(args: { status: number; vaquitaAddress: Address; members: 
         return [
             {
                 icon: "📊",
-                label: "Ver pendientes",
+                label: t("dash.actions.pending"),
                 href: "https://wa.me/14155238886?text=pendientes",
                 primary: true,
             },
