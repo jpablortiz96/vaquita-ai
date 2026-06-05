@@ -209,6 +209,18 @@ async function start() {
     if (!isBotConfigured()) {
         fastify.log.warn("Twilio not fully configured — signature validation will be skipped.");
     }
+
+    // Bitso safety check on startup
+    if (env.BITSO_API_BASE_URL?.includes("api.bitso.com") && !env.BITSO_API_BASE_URL.includes("-sandbox")) {
+        fastify.log.warn("=".repeat(60));
+        fastify.log.warn("⚠️  BITSO IS POINTING TO PRODUCTION (api.bitso.com)");
+        fastify.log.warn("    All non-GET requests are physically blocked.");
+        fastify.log.warn("    Verify your API key is READ-ONLY in Bitso settings.");
+        fastify.log.warn("=".repeat(60));
+    } else if (env.BITSO_API_BASE_URL?.includes("api-sandbox.bitso.com")) {
+        fastify.log.info("Bitso pointing to sandbox (safe for testing).");
+    }
+
     try {
         await fastify.listen({ port: env.PORT, host: env.HOST });
         fastify.log.info(`🐄 VaquitaAI bot listening on ${env.HOST}:${env.PORT}`);

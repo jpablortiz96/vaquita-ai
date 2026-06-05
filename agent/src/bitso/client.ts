@@ -3,6 +3,28 @@ import { env, isBitsoConfigured } from "../config/env.js";
 import type { BitsoResponse } from "./types.js";
 
 /**
+ * SAFETY GUARD: When pointing to production Bitso (api.bitso.com without -sandbox),
+ * physically block any HTTP method that is not GET. This is defense-in-depth on top
+ * of using a read-only API key.
+ *
+ * The user's API key SHOULD be read-only, but this code-level guard ensures that
+ * even if a future code change accidentally adds a POST/PUT/DELETE, the request
+ * will throw before reaching Bitso's servers.
+ */
+function assertReadOnlyOnProduction(method: string, baseUrl: string): void {
+    const isProduction = baseUrl.includes("api.bitso.com") && !baseUrl.includes("-sandbox");
+    if (!isProduction) return;
+    const upperMethod = method.toUpperCase();
+    if (upperMethod !== "GET") {
+        throw new Error(
+            `[BITSO SAFETY] Blocked ${upperMethod} request to production Bitso (${baseUrl}). ` +
+                `Only GET is allowed when pointing to api.bitso.com. ` +
+                `If you need write operations, switch to sandbox (BITSO_API_BASE_URL=https://api-sandbox.bitso.com/api/v3).`,
+        );
+    }
+}
+
+/**
  * Low-level HTTP client for the Bitso Business Trading API.
  *
  * Implements HMAC SHA256 request signing per https://docs.bitso.com/bitso-api/docs/general-concepts
@@ -30,6 +52,7 @@ export class BitsoClient {
 
     /** Public GET — no authentication required. Used for market data. */
     async publicGet<T>(path: string, query?: Record<string, string>): Promise<T> {
+        assertReadOnlyOnProduction("GET", this.baseUrl);
         const url = new URL(`${this.baseUrl}${path}`);
         if (query) {
             for (const [k, v] of Object.entries(query)) {
@@ -61,6 +84,7 @@ export class BitsoClient {
 
     /** Private GET — HMAC-signed. Used for account-specific data. */
     async privateGet<T>(path: string): Promise<T> {
+        assertReadOnlyOnProduction("GET", this.baseUrl);
         if (!this.apiKey || !this.apiSecret) {
             throw new Error("Bitso credentials not configured");
         }
@@ -83,6 +107,7 @@ export class BitsoClient {
 
     /** Private POST — HMAC-signed with JSON body in signature. */
     async privatePost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+        assertReadOnlyOnProduction("POST", this.baseUrl);
         if (!this.apiKey || !this.apiSecret) {
             throw new Error("Bitso credentials not configured");
         }

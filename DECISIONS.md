@@ -129,3 +129,20 @@
 **Decision:** Use Privy with embedded wallets. Users log in with Email/Google/X. Wallet is created invisibly. They never see a seed phrase.
 **Reasoning:** UX must match WhatsApp simplicity. Privy abstracts crypto entirely while keeping users in control via social recovery.
 **Consequences:** Dependency on Privy as a service. Acceptable — they're a YC company with strong funding and good developer DX. Note: @privy-io/wagmi pins viem to an exact version (2.51.2), so the web workspace must match.
+
+## ADR-17: Code-level read-only guard for Bitso production
+**Date:** 2026-06-05
+**Status:** Accepted
+
+**Context:** For the hackathon demo we point to Bitso production (api.bitso.com) to show real market data and account balances (the personal account's Business sandbox is unavailable). The API key is configured as read-only in the Bitso dashboard, but we want defense-in-depth at the code level.
+
+**Decision:** Add `assertReadOnlyOnProduction()` in agent/src/bitso/client.ts that throws on any non-GET request when the base URL contains "api.bitso.com" without "-sandbox". This is checked on every Bitso request (publicGet, privateGet, privatePost).
+
+**Reasoning:**
+- Even if a future code change accidentally adds POST/PUT/DELETE, the request fails before reaching Bitso
+- Defense-in-depth: read-only API key + code-level block + startup warning banner
+- No measurable performance overhead (single string check per request)
+
+**Consequences:**
+- When pointing to production, only GET endpoints work (sufficient for demo: ticker, balance, account_status)
+- Switch BITSO_API_BASE_URL to sandbox if write operations are needed in development
