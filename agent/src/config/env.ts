@@ -40,6 +40,11 @@ const envSchema = z.object({
     HOST: z.string().default("0.0.0.0"),
     PUBLIC_URL: z.string().url().optional(),
 
+    // CORS — who may call this API from a browser. Comma-separated list of origins.
+    // FRONTEND_URL is the canonical Vercel deployment; ALLOWED_ORIGINS adds extras.
+    FRONTEND_URL: z.string().url().optional(),
+    ALLOWED_ORIGINS: z.string().optional(),
+
     // Logging
     LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional().default("info"),
 
@@ -71,4 +76,19 @@ export function isVoiceConfigured(): boolean {
 /** True when Bitso Business API is configured. */
 export function isBitsoConfigured(): boolean {
     return Boolean(env.BITSO_API_KEY && env.BITSO_API_SECRET);
+}
+
+/**
+ * Browser origins allowed to call this API via CORS. Always includes local dev
+ * ports; adds FRONTEND_URL (Vercel) and any extra ALLOWED_ORIGINS (comma-separated).
+ */
+export function allowedOrigins(): string[] {
+    const dev = ["http://localhost:3002", "http://localhost:3000"];
+    const extra = (env.ALLOWED_ORIGINS ?? "")
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean);
+    const list = [...dev, ...extra];
+    if (env.FRONTEND_URL) list.push(env.FRONTEND_URL);
+    return [...new Set(list)];
 }

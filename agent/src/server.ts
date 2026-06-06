@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import formbody from "@fastify/formbody";
-import { env, isBotConfigured } from "./config/env.js";
+import cors from "@fastify/cors";
+import { env, isBotConfigured, allowedOrigins } from "./config/env.js";
 import { handleMessage } from "./bot/engine.js";
 import { normalizePhone } from "./bot/sessions.js";
 import { sendWhatsApp, sendWhatsAppAndVerify, sendWhatsAppMedia, validateTwilioSignature } from "./bot/twilio-client.js";
@@ -13,6 +14,12 @@ const fastify = Fastify({
     },
 });
 
+// CORS: allow the Vercel frontend (+ local dev) to call this API from the browser.
+// Twilio webhooks are server-to-server (no Origin header) so they are unaffected.
+await fastify.register(cors, {
+    origin: allowedOrigins(),
+    methods: ["GET", "POST"],
+});
 await fastify.register(formbody);
 await fastify.register(fastifyStatic, {
     root: AUDIO_DIRECTORY,

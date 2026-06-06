@@ -1,0 +1,54 @@
+# Render Blueprint for the VaquitaAI agent (backend / WhatsApp bot).
+# Render auto-detects this file at the repo root. Secrets are NOT stored here —
+# every key below uses `sync: false`, so Render prompts for the value in its
+# dashboard (or you set it manually). No real values are ever committed.
+services:
+  - type: web
+    name: vaquita-ai-agent
+    runtime: node
+    plan: free
+    rootDir: agent
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # ── Required (server refuses to boot without these) ──
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ARBITRUM_SEPOLIA_RPC
+        sync: false
+      - key: DEPLOYER_PRIVATE_KEY
+        sync: false
+      # ── Public URL of THIS service (Render URL). Webhook = {PUBLIC_URL}/webhook/twilio ──
+      - key: PUBLIC_URL
+        sync: false
+      # ── CORS: the Vercel frontend allowed to call this API ──
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # ── Twilio (WhatsApp bot) ──
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      # ── ElevenLabs (voice) ──
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID_ES
+        sync: false
+      # ── Bitso ──
+      - key: BITSO_API_KEY
+        sync: false
+      - key: BITSO_API_SECRET
+        sync: false
+      - key: BITSO_API_BASE_URL
+        sync: false
+      # ── Optional ──
+      - key: ARBISCAN_API_KEY
+        sync: false
