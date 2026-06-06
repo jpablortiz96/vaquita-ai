@@ -16,7 +16,7 @@
 
 **The traditional Latin American savings circle — supercharged with AI trust scoring, Spanish voice notifications, and an uncheatable on-chain ledger.**
 
-[**🎬 Watch Demo (3 min)**](#-demo) · [**📚 Docs**](./docs) · [**🏗️ Architecture**](./ARCHITECTURE.md) · [**📝 Submission**](./SUBMISSION.md)
+[**🎬 Watch Demo (3 min)**](https://youtu.be/NxP2qvHFJJU) · [**📚 Docs**](./docs) · [**🏗️ Architecture**](./ARCHITECTURE.md) · [**📝 Submission**](./SUBMISSION.md)
 
 </div>
 
@@ -522,7 +522,7 @@ Most projects translate existing US protocols into Spanish. VaquitaAI is built f
 
 Industrial engineer turned data + AI + automation educator. Solo founder of [Eduky](https://eduky.co), an edtech brand teaching ~105k followers across LATAM. Based in **Cali, Colombia 🇨🇴**. Builds for LATAM by default.
 
-**Hackathon track record:** Multiple wins at lablab.ai, Microsoft Agents League, IBM Bob Hackathon, DataCamp DataLab, DEV.to Gemma 4 Challenge.
+**Hackathon track record:** Multiple Hacks at lablab.ai, Microsoft Agents League, IBM Bob Hackathon, DataCamp DataLab, DEV.to Gemma 4 Challenge.
 
 [![Twitter](https://img.shields.io/badge/-@_eduky-1DA1F2?logo=twitter&logoColor=white)](https://twitter.com/_eduky)
 [![Instagram](https://img.shields.io/badge/-@_eduky-E4405F?logo=instagram&logoColor=white)](https://instagram.com/_eduky)
